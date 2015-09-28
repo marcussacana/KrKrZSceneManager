@@ -44,6 +44,7 @@ namespace ScnEditorGUI
         {
             try
             {
+                this.Text = "id: " + listBox1.SelectedIndex;
                 textBox1.Text = listBox1.Items[listBox1.SelectedIndex].ToString();
             }
             catch { }
