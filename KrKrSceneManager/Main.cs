@@ -47,9 +47,9 @@ namespace KrKrSceneManager
             }
             Status = "Generating new scene...";
             string[] temp = new string[Script.Length + Offsets.Length + strings.Length];
-            Script.CopyTo(temp, 0);// :V find the problem
+            Script.CopyTo(temp, 0);
             Offsets.CopyTo(temp, Script.Length);
-            strings.CopyTo(temp, Script.Length/*+Offsets.Length/2*/);
+            strings.CopyTo(temp, Script.Length+Offsets.Length);
             Script = temp;
             return Tools.StringToByteArray(Script);
         }
