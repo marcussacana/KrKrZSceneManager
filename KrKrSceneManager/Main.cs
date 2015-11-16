@@ -14,27 +14,40 @@ namespace KrKrSceneManager
         private string[] Source = new string[0];
         private string[] posfix = new string[0];
         public string[] Strings = new string[0];
+        private int TablePrefixSize = 0;
+        private bool NotHaveNullString = false;
+
         public byte[] export()
         {
             if (Source.Length == 0)
                 throw new Exception("You need import a scene before export.");
-            string[] Script = new string[OffsetTable + 4 + DefaultOffsetSize];
+            string[] Script = new string[OffsetTable + TablePrefixSize + DefaultOffsetSize];
             for (int pos = 0; pos < Script.Length; pos++) {
                 Status = "Copying Script...";
                 Script[pos] = Source[pos];
             }
             string[] Offsets = new string[StringTable-Script.Length];
-            string[] strings= new string[0];
-            for (int pos = 0; pos < Strings.Length; pos++){
+            string[] strings = new string[0];
+            int disc = 0;
+            if (NotHaveNullString)
+            {
+                string[] hex = Tools.U8StringToHex(Strings[0]);
+                string[] tmp = new string[strings.Length + hex.Length];
+                strings.CopyTo(tmp, 0);
+                hex.CopyTo(tmp, strings.Length);
+                strings = tmp;
+                disc = 1;
+            }
+            for (int pos = disc; pos < Strings.Length; pos++){
                 Status = "Compiling strings... (" + (pos*100)/Strings.Length + "%)";
                 string[] hex = Tools.U8StringToHex(Strings[pos]);
                 string[] tmp = new string[strings.Length + hex.Length + 1];
                 strings.CopyTo(tmp, 0);
                 tmp[strings.Length] = "00";
-                int offset = strings.Length + 1;
+                int offset = (strings.Length + 1);
                 hex.CopyTo(tmp, strings.Length+1);
                 strings = tmp;
-               Offsets = writeOffset(Offsets, pos*DefaultOffsetSize, offset);
+               Offsets = writeOffset(Offsets, (pos-disc)*DefaultOffsetSize, offset);
             }
             if (havePosFix) {
                 Status = "Additing aditional content...";
@@ -98,13 +111,48 @@ namespace KrKrSceneManager
             scn.StringTable = StringTablePos;
             int DefaultOffsetSize = 0;
             Status = "Getting Offsets Size...";
-            for (int index = OffsetTablePos + 4; scene[index] == "00"; index++)
+            /*
+            NotHaveNullString = false;
+            TablePrefixSize = 4;
+            for (int index = OffsetTablePos + 4; scene[index] == "00"; index++) //Old Method, crash if script don't have null string call's
             {
                 DefaultOffsetSize++;
+            }*/
+            //new method start
+            bool ZeroApper = false;
+            for (int index = OffsetTablePos; scene[index] != "01"; index++)
+            {
+                string ActualByte = scene[index];
+                if (ActualByte == "00")
+                    ZeroApper = true;
+                if (ZeroApper)
+                {
+                    if (ActualByte == "00")
+                        DefaultOffsetSize++;
+                    else
+                    {
+                        NotHaveNullString = true; // if the compiled script don't have blank strings the exist a string without offset
+                        break;
+                    }
+                }
+                else
+                {
+                    TablePrefixSize++;
+                }
             }
+            //new method end
             scn.DefaultOffsetSize = DefaultOffsetSize;
+            scn.TablePrefixSize = TablePrefixSize;
+            scn.NotHaveNullString = NotHaveNullString;
             string[] strs = new string[0];
-            for (int pos = OffsetTablePos + 4 + DefaultOffsetSize; pos < StringTablePos; pos += DefaultOffsetSize)
+            if (NotHaveNullString)
+            {
+                string[] temp = new string[strs.Length + 1];
+                strs.CopyTo(temp, 0);
+                temp[strs.Length] = GetString(scene, StringTablePos);
+                strs = temp;
+            }
+            for (int pos = OffsetTablePos + TablePrefixSize + DefaultOffsetSize; pos < StringTablePos; pos += DefaultOffsetSize)
             {
                 Status = "Importing Strings... (" + (pos*100)/StringTablePos + "%)";
                 string[] temp = new string[strs.Length + 1];
