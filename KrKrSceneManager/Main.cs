@@ -120,7 +120,7 @@ namespace KrKrSceneManager
             }*/
             //new method start
             bool ZeroApper = false;
-            for (int index = OffsetTablePos; scene[index] != "01"; index++)
+            for (int index = OffsetTablePos; scene[index] != "01" || !ZeroApper; index++)
             {
                 string ActualByte = scene[index];
                 if (ActualByte == "00")
