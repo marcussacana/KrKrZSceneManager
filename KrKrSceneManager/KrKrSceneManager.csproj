@@ -41,6 +41,20 @@
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Zlib\Adler32.cs" />
+    <Compile Include="Zlib\Deflate.cs" />
+    <Compile Include="Zlib\InfBlocks.cs" />
+    <Compile Include="Zlib\InfCodes.cs" />
+    <Compile Include="Zlib\Inflate.cs" />
+    <Compile Include="Zlib\InfTree.cs" />
+    <Compile Include="Zlib\StaticTree.cs" />
+    <Compile Include="Zlib\SupportClass.cs" />
+    <Compile Include="Zlib\Tree.cs" />
+    <Compile Include="Zlib\ZInputStream.cs" />
+    <Compile Include="Zlib\Zlib.cs" />
+    <Compile Include="Zlib\ZOutputStream.cs" />
+    <Compile Include="Zlib\ZStream.cs" />
+    <Compile Include="Zlib\ZStreamException.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

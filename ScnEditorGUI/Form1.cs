@@ -15,7 +15,7 @@ namespace ScnEditorGUI
         public Form1()
         {
             InitializeComponent();
-            MessageBox.Show("This don't is a stable translation tool, this program is a Demo for my dll, the \"KrKrSceneManager.dll\" it's a opensoruce project to allow you make your program to edit any scn file, with sig PSB.\n\nHow to use:\n*Rigth Click in the window to open or save the file\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
+            MessageBox.Show("This GUI don't is a stable translation tool, this program is a Demo for my dll, the \"KrKrSceneManager.dll\" it's a opensoruce project to allow you make your program to edit any scn file, with sig PSB or MDF.\n\nHow to use:\n*Rigth Click in the window to open or save the file\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
         }
 
         private void openFileToolStripMenuItem_Click(object sender, EventArgs e)
@@ -61,6 +61,8 @@ namespace ScnEditorGUI
                 {
                     ((SCENE)SCN).Strings[i] = listBox1.Items[i].ToString();
                 }
+                dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nDoes not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                ((SCENE)SCN).CompressScene = dr == DialogResult.Yes;
                 byte[] outfile = ((SCENE)SCN).export();
                 System.IO.File.WriteAllBytes(save.FileName, outfile);
                 MessageBox.Show("File Saved.");
