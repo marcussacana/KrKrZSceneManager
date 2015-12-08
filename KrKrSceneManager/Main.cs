@@ -1,11 +1,13 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using Zlib;
+using ZLib;
 
 namespace KrKrSceneManager
 {
-    public class SCENE {
+    public class CompressionLevel : ZLibCompressionLevel { }
+    public class SCENE
+    {
         private int DefaultOffsetSize;
         private int StringTable;
         private int OffsetTable;
@@ -13,17 +15,16 @@ namespace KrKrSceneManager
         private string Status = "Not Open";
         private string[] Source = new string[0];
         private string[] posfix = new string[0];
-        public string[] Strings = new string[0];
         private int TablePrefixSize = 0;
-        private bool NotHaveNullString = false;
         public bool CompressScene = false;
-        public ZlibMode CompressionMode = ZlibMode.L_BEST_COMPRESSION;
+        public int CompressionLevel = ZLibCompressionLevel.Z_BEST_COMPRESSION;
+        public string[] Strings = new string[0];
 
         public byte[] export()
         {
             if (Source.Length == 0)
                 throw new Exception("You need import a scene before export.");
-            string[] Script = new string[OffsetTable + TablePrefixSize + DefaultOffsetSize];
+            string[] Script = new string[OffsetTable + TablePrefixSize];
             for (int pos = 0; pos < Script.Length; pos++)
             {
                 Status = "Copying Script...";
@@ -32,7 +33,8 @@ namespace KrKrSceneManager
             string[] Offsets = new string[StringTable - Script.Length];
             string[] strings = new string[0];
             int disc = 0;
-            if (NotHaveNullString)
+            #region OldVersion
+            /*if (NotHaveNullString)
             {
                 string[] hex = Tools.U8StringToHex(Strings[0]);
                 string[] tmp = new string[strings.Length + hex.Length];
@@ -40,7 +42,8 @@ namespace KrKrSceneManager
                 hex.CopyTo(tmp, strings.Length);
                 strings = tmp;
                 disc = 1;
-            }
+            }*/
+#endregion
             for (int pos = disc; pos < Strings.Length; pos++)
             {
                 Status = "Compiling strings... (" + (pos * 100) / Strings.Length + "%)";
@@ -73,7 +76,7 @@ namespace KrKrSceneManager
             if (CompressScene)
             {
                 byte[] CompressedScript;
-                Tools.CompressData(Tools.StringToByteArray(Script), (int)CompressionMode, out CompressedScript);
+                Tools.CompressData(Tools.StringToByteArray(Script), CompressionLevel, out CompressedScript);
                 byte[] RetData = new byte[8 + CompressedScript.Length];
                 (new byte[] { 0x6D, 0x64, 0x66, 0x00 }).CopyTo(RetData, 0);
                 genOffset(4, Script.Length).CopyTo(RetData, 4);
@@ -124,24 +127,31 @@ namespace KrKrSceneManager
         {
             string[] result = offsets;
             string var = Tools.IntToHex(Value);
-            if (var.Length % 2 != 0){
+            if (var.Length % 2 != 0)
+            {
                 var = 0 + var;
             }
-            if (var.Length/2 > DefaultOffsetSize){
+            if (var.Length / 2 > DefaultOffsetSize)
+            {
                 throw new Exception("Edited Strings are too big.");
             }
-            string[] hex = new string[var.Length/2];
+            string[] hex = new string[var.Length / 2];
             int tmp = 0;
-            for (int i = var.Length - 2; i > -2; i -= 2){
+            for (int i = var.Length - 2; i > -2; i -= 2)
+            {
                 hex[tmp] = var.Substring(i, 2);
                 tmp++;
             }
             tmp = 0;
 
-            for (int i = position; i < (position+DefaultOffsetSize); i++){
-                if (tmp < hex.Length){
+            for (int i = position; i < (position + DefaultOffsetSize); i++)
+            {
+                if (tmp < hex.Length)
+                {
                     result[i] = hex[tmp];
-                } else {
+                }
+                else
+                {
                     result[i] = "00";
                 }
                 tmp++;
@@ -176,6 +186,7 @@ namespace KrKrSceneManager
             scn.StringTable = StringTablePos;
             int DefaultOffsetSize = 0;
             Status = "Getting Offsets Size...";
+            #region OldRegion
             /*
             NotHaveNullString = false;
             TablePrefixSize = 4;
@@ -183,6 +194,7 @@ namespace KrKrSceneManager
             {
                 DefaultOffsetSize++;
             }*/
+            /*
             //new method start
             bool ZeroApper = false;
             for (int index = OffsetTablePos; scene[index] != "01" || !ZeroApper; index++)
@@ -205,36 +217,86 @@ namespace KrKrSceneManager
                     TablePrefixSize++;
                 }
             }
-            //new method end
+            //new method end*/
+            #endregion
+            int BRUTEFORCEBUFFER = 4;
+            int minimalsize = 0;
+            while (scene.Length - StringTablePos > (minimalsize * 255)*255) //calculate the minimal size to strings offset by file size
+                minimalsize++;
+            minimalsize++;
+            int[] offsets = new int[0];
+            for (int pos = 0; pos + StringTablePos < scene.Length; pos++) //generate string position tree
+                if (scene[StringTablePos + pos] == "00")
+                {
+                    int[] tmp = new int[offsets.Length+1];
+                    offsets.CopyTo(tmp, 0);
+                    tmp[offsets.Length] = pos+1;
+                    offsets = tmp;
+                }
+            if (offsets.Length <= BRUTEFORCEBUFFER)
+                BRUTEFORCEBUFFER = offsets.Length-1;
+            for (int size = minimalsize; ; size++)//find offsets position with diff offset size
+            {
+                bool okay = false;
+                string[] OffTable = genOffsetTable(offsets, BRUTEFORCEBUFFER, size);
+                for (int i = 0; i < size * BRUTEFORCEBUFFER; i++)
+                {
+                    if (EqualsAt(scene, OffTable, OffsetTablePos + i))
+                    {
+                        TablePrefixSize = i;
+                        DefaultOffsetSize = size;
+                        okay = true;
+                        break;
+                    }
+                }
+                if (okay)
+                    break;
+            }
+
             scn.DefaultOffsetSize = DefaultOffsetSize;
             scn.TablePrefixSize = TablePrefixSize;
-            scn.NotHaveNullString = NotHaveNullString;
             string[] strs = new string[0];
-            if (NotHaveNullString)
+            #region OldVersion
+            //scn.NotHaveNullString = NotHaveNullString;
+            /*if (NotHaveNullString)
             {
                 string[] temp = new string[strs.Length + 1];
                 strs.CopyTo(temp, 0);
                 temp[strs.Length] = GetString(scene, StringTablePos);
                 strs = temp;
-            }
-            for (int pos = OffsetTablePos + TablePrefixSize + DefaultOffsetSize; pos < StringTablePos; pos += DefaultOffsetSize)
+            }*/
+            #endregion
+            for (int pos = OffsetTablePos + TablePrefixSize; pos < StringTablePos; pos += DefaultOffsetSize)
             {
-                Status = "Importing Strings... (" + (pos*100)/StringTablePos + "%)";
+                Status = "Importing Strings... (" + (pos * 100) / StringTablePos + "%)";
                 string[] temp = new string[strs.Length + 1];
                 strs.CopyTo(temp, 0);
-                temp[strs.Length] = GetString(scene, GetOffset(scene, pos, DefaultOffsetSize, false)+StringTablePos);
-                strs = temp;
-                if (pos + DefaultOffsetSize >= StringTablePos){
+                int index = GetOffset(scene, pos, DefaultOffsetSize, false) + StringTablePos;
+                if (scene[index] == "00")
+                {
+                    temp[strs.Length] = string.Empty;
+                    strs = temp;
+                }
+                else
+                {
+                    temp[strs.Length] = GetString(scene, index);
+                    strs = temp;
+                }
+                if (pos + DefaultOffsetSize >= StringTablePos)
+                {
                     int EndLast = -1;
-                    for (int i = GetOffset(scene, pos, DefaultOffsetSize, false)+StringTablePos; scene[i] != "00" && i < scene.Length; i++){
+                    for (int i = GetOffset(scene, pos, DefaultOffsetSize, false) + StringTablePos; scene[i] != "00" && i < scene.Length; i++)
+                    {
                         EndLast = i;
                         if (i + 1 > scene.Length)
                             break;
                     }
-                    if (EndLast != -1){
+                    if (EndLast != -1)
+                    {
                         EndLast++;
                         scn.havePosFix = true;
-                        for (int i = EndLast; i < scene.Length; i++){
+                        for (int i = EndLast; i < scene.Length; i++)
+                        {
                             string[] tmp = new string[scn.posfix.Length + 1];
                             scn.posfix.CopyTo(tmp, 0);
                             tmp[scn.posfix.Length] = scene[i];
@@ -247,6 +309,30 @@ namespace KrKrSceneManager
             Status = "Imported";
             return scn;
         }
+
+        private bool EqualsAt(string[] scene, string[] offTable, int offsetTablePos)
+        {
+            if (offsetTablePos + offTable.Length > scene.Length)
+                return false;
+            for (int pos = 0; pos < offTable.Length; pos++)
+            {
+                if (scene[offsetTablePos + pos] != offTable[pos])
+                    return false;
+            }
+            return true;
+        }
+
+        private string[] genOffsetTable(int[] offsets, int BRUTEFORCEBUFFER, int size)
+        {
+            string[] table = new string[size * BRUTEFORCEBUFFER];
+            for (int i = 0; i < BRUTEFORCEBUFFER; i++)
+            {
+                string[] offset = Tools.ByteArrayToString(genOffset(size, offsets[i])).Split('-');
+                offset.CopyTo(table, i*size);
+            }
+            return table;
+        }
+
         public string GetStatus()
         {
             return Status;
@@ -257,7 +343,7 @@ namespace KrKrSceneManager
             string hex = "";
             for (int i = pos; scene[i] != "00" && i + 1 < scene.Length; i++)
                 hex += scene[i] + "-";
-            hex = hex.Substring(0, hex.Length-1);
+            hex = hex.Substring(0, hex.Length - 1);
             return Tools.U8HexToString(hex.Split('-')).Replace("\n", "\\n");
         }
 
@@ -278,94 +364,8 @@ namespace KrKrSceneManager
                 return Tools.HexToInt(hex);
             }
         }
-
-        #region ZlibLevels
-        public enum ZlibMode
-        {
-            /// <summary>
-            /// Compression Level
-            /// </summary>
-            L_NO_COMPRESSION = 0,
-            /// <summary>
-            /// Compression Level
-            /// </summary>
-            L_BEST_SPEED = 1,
-            /// <summary>
-            /// Compression Level
-            /// </summary>
-            L_BEST_COMPRESSION = 9,
-            /// <summary>
-            /// Compression Level
-            /// </summary>
-            L_DEFAULT_COMPRESSION = (-1),
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_FILTERED = 1,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_HUFFMAN_ONLY = 2,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_DEFAULT_STRATEGY = 0,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_NO_FLUSH = 0,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_PARTIAL_FLUSH = 1,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_SYNC_FLUSH = 2,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_FULL_FLUSH = 3,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_FINISH = 4,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_STREAM_END = 1,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_NEED_DICT = 2,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_ERRNO = -1,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_STREAM_ERROR = -2,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_DATA_ERROR = -3,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_MEM_ERROR = -4,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_BUF_ERROR = -5,
-            /// <summary>
-            /// Compression Strategy
-            /// </summary>
-            S_VERSION_ERROR = -6
-        }
-        #endregion
     }
-    class Tools
+    internal class Tools
     {
         internal static void CompressData(byte[] inData, int compression, out byte[] outData)
         {
@@ -374,7 +374,7 @@ namespace KrKrSceneManager
             using (Stream inMemoryStream = new MemoryStream(inData))
             {
                 CopyStream(inMemoryStream, outZStream);
-                outZStream.finish();
+                outZStream.Finish();
                 outData = outMemoryStream.ToArray();
             }
         }
@@ -390,13 +390,38 @@ namespace KrKrSceneManager
         }
         internal static void DecompressData(byte[] inData, out byte[] outData)
         {
-            using (MemoryStream outMemoryStream = new MemoryStream())
-            using (ZOutputStream outZStream = new ZOutputStream(outMemoryStream))
-            using (Stream inMemoryStream = new MemoryStream(inData))
+            try
             {
-                CopyStream(inMemoryStream, outZStream);
-                outZStream.finish();
-                outData = outMemoryStream.ToArray();
+                using (Stream inMemoryStream = new MemoryStream(inData))
+                using (ZInputStream outZStream = new ZInputStream(inMemoryStream))
+                {
+                    MemoryStream outMemoryStream = new MemoryStream();
+                    CopyStream(outZStream, outMemoryStream);
+                    outData = outMemoryStream.ToArray();
+                }
+            }
+            catch
+            {
+                outData = new byte[0];
+            }
+        }
+
+        internal static void DecompressData(byte[] inData, int OutSize, out byte[] outData)
+        {
+            outData = new byte[OutSize];
+            try
+            {
+                using (Stream inMemoryStream = new MemoryStream(inData))
+                using (ZInputStream outZStream = new ZInputStream(inMemoryStream))
+                {
+                    int leng = (int)outZStream.Length;
+                    for (int i = 0; i < outData.Length; i++)
+                        outData[i] = (byte)outZStream.ReadByte();
+                }
+            }
+            catch
+            {
+                outData = new byte[0];
             }
         }
         public static string IntToHex(int val)
@@ -450,7 +475,7 @@ namespace KrKrSceneManager
             byte[] b = unicode.GetBytes(input);
             r = ByteArrayToString(b);
             return r.Replace("-", @" ");
-            
+
         }
         public static string U8HexToString(string[] hex)
         {

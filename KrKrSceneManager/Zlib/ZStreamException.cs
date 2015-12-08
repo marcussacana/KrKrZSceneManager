@@ -1,5 +1,5 @@
 // Copyright (c) 2006, ComponentAce
-// http://www.componentace.com
+// http://www.componentace.componentAce.com
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -42,16 +42,29 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 * and contributors of zlib.
 */
 using System;
-namespace Zlib
+using System.IO;
+
+namespace ZLib
 {
 	
-	
-	public class ZStreamException:System.IO.IOException
+	/// <summary>
+	/// Exceptions that occur in ZStream
+	/// </summary>
+	internal class ZStreamException : System.IO.IOException
 	{
-		public ZStreamException():base()
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+		internal ZStreamException()
+            :base()
 		{
 		}
-		public ZStreamException(System.String s):base(s)
+        
+        /// <summary>
+        /// Constructor which takes one parameter - an error message
+        /// </summary>
+		internal ZStreamException(System.String s)
+            :base(s)
 		{
 		}
 	}

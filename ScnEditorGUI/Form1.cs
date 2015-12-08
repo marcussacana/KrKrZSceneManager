@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using KrKrSceneManager;
 
@@ -63,6 +57,7 @@ namespace ScnEditorGUI
                 }
                 dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nDoes not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 ((SCENE)SCN).CompressScene = dr == DialogResult.Yes;
+                ((SCENE)SCN).CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
                 byte[] outfile = ((SCENE)SCN).export();
                 System.IO.File.WriteAllBytes(save.FileName, outfile);
                 MessageBox.Show("File Saved.");

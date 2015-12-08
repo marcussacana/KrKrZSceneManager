@@ -7,7 +7,7 @@
 // Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. 
 // Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. 
 // Neither the name of ComponentAce nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission. 
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE  InflateCodesMode.COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABI InflateCodesMode.LITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE  InflateCodesMode.COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABI InflateCodesMode.LITY, WHETHER IN CONTRACT, STRICT LIABI InflateCodesMode.LITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBI InflateCodesMode.LITY OF SUCH DAMAGE.
 
 /*
 Copyright (c) 2000,2001,2002,2003 ymnk, JCraft,Inc. All rights reserved.
@@ -26,15 +26,15 @@ the documentation and/or other materials provided with the distribution.
 derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABI InflateCodesMode.LITY AND
 FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL JCRAFT,
 INC. OR ANY CONTRIBUTORS TO THIS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
 LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
 OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+LIABI InflateCodesMode.LITY, WHETHER IN CONTRACT, STRICT LIABI InflateCodesMode.LITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+EVEN IF ADVISED OF THE POSSIBI InflateCodesMode.LITY OF SUCH DAMAGE.
 */
 /*
 * This program is based on zlib-1.1.3, so all credit should go authors
@@ -42,63 +42,109 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 * and contributors of zlib.
 */
 using System;
-namespace Zlib
+
+namespace ZLib
 {
-	
-	sealed class InfCodes
+
+    /// <summary>
+    /// Inflate codes mode
+    /// </summary>
+    internal enum InflateCodesMode
+    {
+         START = 0, // x: set up for  InflateCodesMode.LEN
+		 LEN = 1, // i: get length/literal/eob next
+		 LENEXT = 2, // i: getting length extra (have base)
+		 DIST = 3, // i: get distance next
+		 DISTEXT = 4, // i: getting distance extra
+		 COPY = 5, // o: copying bytes in Window, waiting for space
+		 LIT = 6, // o: got literal, waiting for output space
+		 WASH = 7, // o: got eob, possibly still output waiting
+		 END = 8, // x: got eob and all data flushed
+		 BADCODE = 9 // x: got error
+    }
+
+    /// <summary>
+    /// This class is used by the InfBlocks class
+    /// </summary>
+	internal sealed class InfCodes
 	{
 				
-		private static readonly int[] inflate_mask = new int[]{0x00000000, 0x00000001, 0x00000003, 0x00000007, 0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f, 0x000000ff, 0x000001ff, 0x000003ff, 0x000007ff, 0x00000fff, 0x00001fff, 0x00003fff, 0x00007fff, 0x0000ffff};
-		
-		private const int Z_OK = 0;
-		private const int Z_STREAM_END = 1;
-		private const int Z_NEED_DICT = 2;
-		private const int Z_ERRNO = - 1;
-		private const int Z_STREAM_ERROR = - 2;
-		private const int Z_DATA_ERROR = - 3;
-		private const int Z_MEM_ERROR = - 4;
-		private const int Z_BUF_ERROR = - 5;
-		private const int Z_VERSION_ERROR = - 6;
-		
-		// waiting for "i:"=input,
-		//             "o:"=output,
-		//             "x:"=nothing
-		private const int START = 0; // x: set up for LEN
-		private const int LEN = 1; // i: get length/literal/eob next
-		private const int LENEXT = 2; // i: getting length extra (have base)
-		private const int DIST = 3; // i: get distance next
-		private const int DISTEXT = 4; // i: getting distance extra
-		private const int COPY = 5; // o: copying bytes in window, waiting for space
-		private const int LIT = 6; // o: got literal, waiting for output space
-		private const int WASH = 7; // o: got eob, possibly still output waiting
-		private const int END = 8; // x: got eob and all data flushed
-		private const int BADCODE = 9; // x: got error
-		
-		internal int mode; // current inflate_codes mode
-		
-		// mode dependent information
-		internal int len;
-		
-		internal int[] tree; // pointer into tree
-		internal int tree_index = 0;
-		internal int need; // bits needed
-		
-		internal int lit;
-		
-		// if EXT or COPY, where and how much
-		internal int get_Renamed; // bits to get for extra
-		internal int dist; // distance back to copy from
-		
-		internal byte lbits; // ltree bits decoded per branch
-		internal byte dbits; // dtree bits decoder per branch
-		internal int[] ltree; // literal/length/eob tree
-		internal int ltree_index; // literal/length/eob tree
-		internal int[] dtree; // distance tree
-		internal int dtree_index; // distance tree
-		
-		internal InfCodes(int bl, int bd, int[] tl, int tl_index, int[] td, int td_index, ZStream z)
+        #region Fields
+
+        /// <summary>
+        /// current inflate_codes mode
+        /// </summary>
+        private InflateCodesMode mode;
+
+        // mode dependent information
+
+
+        /// <summary>
+        /// length
+        /// </summary>        
+        private int count;
+
+        /// <summary>
+        /// pointer into tree
+        /// </summary>
+        private int[] tree;
+
+        /// <summary>
+        /// current index of the tree
+        /// </summary>
+        internal int tree_index = 0;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        internal int need; // bits needed
+
+        internal int lit;
+
+        // if EXT or  InflateCodesMode.COPY, where and how much
+        internal int get_Renamed; // bits to get for extra
+        internal int dist; // distance back to copy from
+
+        /// <summary>
+        /// ltree bits decoded per branch
+        /// </summary>
+        private byte lbits;
+
+        /// <summary>
+        /// dtree bits decoded per branch
+        /// </summary>
+		private byte dbits;
+
+        /// <summary>
+        /// literal/length/eob tree
+        /// </summary>
+		private int[] ltree;
+
+        /// <summary>
+        /// literal/length/eob tree index
+        /// </summary>
+		private int ltree_index;
+
+        /// <summary>
+        /// distance tree
+        /// </summary>
+		private int[] dtree;
+
+        /// <summary>
+        /// distance tree index
+        /// </summary>
+		private int dtree_index;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Constructor which takes literal, distance trees, corresponding bites decoded for branches, corresponding indexes and a ZStream object 
+        /// </summary>        
+        internal InfCodes(int bl, int bd, int[] tl, int tl_index, int[] td, int td_index, ZStream z)
 		{
-			mode = START;
+			mode =  InflateCodesMode.START;
 			lbits = (byte) bl;
 			dbits = (byte) bd;
 			ltree = tl;
@@ -106,10 +152,13 @@ namespace Zlib
 			dtree = td;
 			dtree_index = td_index;
 		}
-		
+
+        /// <summary>
+        /// Constructor which takes literal, distance trees, corresponding bites decoded for branches and a ZStream object 
+        /// </summary>   
 		internal InfCodes(int bl, int bd, int[] tl, int[] td, ZStream z)
 		{
-			mode = START;
+			mode =  InflateCodesMode.START;
 			lbits = (byte) bl;
 			dbits = (byte) bd;
 			ltree = tl;
@@ -118,6 +167,12 @@ namespace Zlib
 			dtree_index = 0;
 		}
 		
+        /// <summary>
+        /// Block processing method
+        /// </summary>
+        /// <param name="s">An instance of the InfBlocks class</param>
+        /// <param name="z">A ZStream object</param>
+        /// <param name="r">A result code</param>
 		internal int proc(InfBlocks s, ZStream z, int r)
 		{
 			int j; // temporary storage
@@ -128,13 +183,13 @@ namespace Zlib
 			int k = 0; // bits in bit buffer
 			int p = 0; // input data pointer
 			int n; // bytes available there
-			int q; // output window write pointer
-			int m; // bytes to end of window or read pointer
+			int q; // output Window WritePos pointer
+			int m; // bytes to End of Window or ReadPos pointer
 			int f; // pointer to copy strings from
 			
 			// copy input/output information to locals (UPDATE macro restores)
-			p = z.next_in_index; n = z.avail_in; b = s.bitb; k = s.bitk;
-			q = s.write; m = q < s.read?s.read - q - 1:s.end - q;
+			p = z.next_in_index; n = z.avail_in; b = s.BitB; k = s.BitK;
+			q = s.WritePos; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 			
 			// process input and output based on current state
 			while (true)
@@ -143,21 +198,21 @@ namespace Zlib
 				{
 					
 					// waiting for "i:"=input, "o:"=output, "x:"=nothing
-					case START:  // x: set up for LEN
+					case  InflateCodesMode.START:  // x: set up for  InflateCodesMode.LEN
 						if (m >= 258 && n >= 10)
 						{
 							
-							s.bitb = b; s.bitk = k;
+							s.BitB = b; s.BitK = k;
 							z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-							s.write = q;
+							s.WritePos = q;
 							r = inflate_fast(lbits, dbits, ltree, ltree_index, dtree, dtree_index, s, z);
 							
-							p = z.next_in_index; n = z.avail_in; b = s.bitb; k = s.bitk;
-							q = s.write; m = q < s.read?s.read - q - 1:s.end - q;
+							p = z.next_in_index; n = z.avail_in; b = s.BitB; k = s.BitK;
+							q = s.WritePos; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 							
-							if (r != Z_OK)
+							if (r != (int)ZLibResultCode.Z_OK)
 							{
-								mode = r == Z_STREAM_END?WASH:BADCODE;
+								mode = r == (int)ZLibResultCode.Z_STREAM_END? InflateCodesMode.WASH: InflateCodesMode.BADCODE;
 								break;
 							}
 						}
@@ -165,22 +220,22 @@ namespace Zlib
 						tree = ltree;
 						tree_index = ltree_index;
 						
-						mode = LEN;
-						goto case LEN;
+						mode =  InflateCodesMode.LEN;
+						goto case  InflateCodesMode.LEN;
 					
-					case LEN:  // i: get length/literal/eob next
+					case  InflateCodesMode.LEN:  // i: get length/literal/eob next
 						j = need;
 						
 						while (k < (j))
 						{
 							if (n != 0)
-								r = Z_OK;
+								r = (int)ZLibResultCode.Z_OK;
 							else
 							{
 								
-								s.bitb = b; s.bitk = k;
+								s.BitB = b; s.BitK = k;
 								z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-								s.write = q;
+								s.WritePos = q;
 								return s.inflate_flush(z, r);
 							}
 							n--;
@@ -188,9 +243,9 @@ namespace Zlib
 							k += 8;
 						}
 						
-						tindex = (tree_index + (b & inflate_mask[j])) * 3;
+						tindex = (tree_index + (b & ZLibUtil.inflate_mask[j])) * 3;
 						
-						b = SupportClass.URShift(b, (tree[tindex + 1]));
+						b = ZLibUtil.URShift(b, (tree[tindex + 1]));
 						k -= (tree[tindex + 1]);
 						
 						e = tree[tindex];
@@ -199,15 +254,15 @@ namespace Zlib
 						{
 							// literal
 							lit = tree[tindex + 2];
-							mode = LIT;
+							mode =  InflateCodesMode.LIT;
 							break;
 						}
 						if ((e & 16) != 0)
 						{
 							// length
 							get_Renamed = e & 15;
-							len = tree[tindex + 2];
-							mode = LENEXT;
+							count = tree[tindex + 2];
+							mode =  InflateCodesMode.LENEXT;
 							break;
 						}
 						if ((e & 64) == 0)
@@ -219,40 +274,40 @@ namespace Zlib
 						}
 						if ((e & 32) != 0)
 						{
-							// end of block
-							mode = WASH;
+							// End of block
+							mode =  InflateCodesMode.WASH;
 							break;
 						}
-						mode = BADCODE; // invalid code
+						mode =  InflateCodesMode.BADCODE; // invalid code
 						z.msg = "invalid literal/length code";
-						r = Z_DATA_ERROR;
+						r = (int)ZLibResultCode.Z_DATA_ERROR;
 						
-						s.bitb = b; s.bitk = k;
+						s.BitB = b; s.BitK = k;
 						z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-						s.write = q;
+						s.WritePos = q;
 						return s.inflate_flush(z, r);
 					
 					
-					case LENEXT:  // i: getting length extra (have base)
+					case  InflateCodesMode.LENEXT:  // i: getting length extra (have base)
 						j = get_Renamed;
 						
 						while (k < (j))
 						{
 							if (n != 0)
-								r = Z_OK;
+								r = (int)ZLibResultCode.Z_OK;
 							else
 							{
 								
-								s.bitb = b; s.bitk = k;
+								s.BitB = b; s.BitK = k;
 								z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-								s.write = q;
+								s.WritePos = q;
 								return s.inflate_flush(z, r);
 							}
 							n--; b |= (z.next_in[p++] & 0xff) << k;
 							k += 8;
 						}
 						
-						len += (b & inflate_mask[j]);
+						count += (b & ZLibUtil.inflate_mask[j]);
 						
 						b >>= j;
 						k -= j;
@@ -260,29 +315,29 @@ namespace Zlib
 						need = dbits;
 						tree = dtree;
 						tree_index = dtree_index;
-						mode = DIST;
-						goto case DIST;
+						mode =  InflateCodesMode.DIST;
+						goto case  InflateCodesMode.DIST;
 					
-					case DIST:  // i: get distance next
+					case  InflateCodesMode.DIST:  // i: get distance next
 						j = need;
 						
 						while (k < (j))
 						{
 							if (n != 0)
-								r = Z_OK;
+								r = (int)ZLibResultCode.Z_OK;
 							else
 							{
 								
-								s.bitb = b; s.bitk = k;
+								s.BitB = b; s.BitK = k;
 								z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-								s.write = q;
+								s.WritePos = q;
 								return s.inflate_flush(z, r);
 							}
 							n--; b |= (z.next_in[p++] & 0xff) << k;
 							k += 8;
 						}
 						
-						tindex = (tree_index + (b & inflate_mask[j])) * 3;
+						tindex = (tree_index + (b & ZLibUtil.inflate_mask[j])) * 3;
 						
 						b >>= tree[tindex + 1];
 						k -= tree[tindex + 1];
@@ -293,7 +348,7 @@ namespace Zlib
 							// distance
 							get_Renamed = e & 15;
 							dist = tree[tindex + 2];
-							mode = DISTEXT;
+							mode =  InflateCodesMode.DISTEXT;
 							break;
 						}
 						if ((e & 64) == 0)
@@ -303,121 +358,121 @@ namespace Zlib
 							tree_index = tindex / 3 + tree[tindex + 2];
 							break;
 						}
-						mode = BADCODE; // invalid code
+						mode =  InflateCodesMode.BADCODE; // invalid code
 						z.msg = "invalid distance code";
-						r = Z_DATA_ERROR;
+						r = (int)ZLibResultCode.Z_DATA_ERROR;
 						
-						s.bitb = b; s.bitk = k;
+						s.BitB = b; s.BitK = k;
 						z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-						s.write = q;
+						s.WritePos = q;
 						return s.inflate_flush(z, r);
 					
 					
-					case DISTEXT:  // i: getting distance extra
+					case  InflateCodesMode.DISTEXT:  // i: getting distance extra
 						j = get_Renamed;
 						
 						while (k < (j))
 						{
 							if (n != 0)
-								r = Z_OK;
+								r = (int)ZLibResultCode.Z_OK;
 							else
 							{
 								
-								s.bitb = b; s.bitk = k;
+								s.BitB = b; s.BitK = k;
 								z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-								s.write = q;
+								s.WritePos = q;
 								return s.inflate_flush(z, r);
 							}
 							n--; b |= (z.next_in[p++] & 0xff) << k;
 							k += 8;
 						}
 						
-						dist += (b & inflate_mask[j]);
+						dist += (b & ZLibUtil.inflate_mask[j]);
 						
 						b >>= j;
 						k -= j;
 						
-						mode = COPY;
-						goto case COPY;
+						mode =  InflateCodesMode.COPY;
+						goto case  InflateCodesMode.COPY;
 					
-					case COPY:  // o: copying bytes in window, waiting for space
+					case  InflateCodesMode.COPY:  // o: copying bytes in Window, waiting for space
 						f = q - dist;
 						while (f < 0)
 						{
-							// modulo window size-"while" instead
-							f += s.end; // of "if" handles invalid distances
+							// modulo Window size-"while" instead
+							f += s.End; // of "if" handles invalid distances
 						}
-						while (len != 0)
+						while (count != 0)
 						{
 							
 							if (m == 0)
 							{
-								if (q == s.end && s.read != 0)
+								if (q == s.End && s.ReadPos != 0)
 								{
-									q = 0; m = q < s.read?s.read - q - 1:s.end - q;
+									q = 0; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 								}
 								if (m == 0)
 								{
-									s.write = q; r = s.inflate_flush(z, r);
-									q = s.write; m = q < s.read?s.read - q - 1:s.end - q;
+									s.WritePos = q; r = s.inflate_flush(z, r);
+									q = s.WritePos; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 									
-									if (q == s.end && s.read != 0)
+									if (q == s.End && s.ReadPos != 0)
 									{
-										q = 0; m = q < s.read?s.read - q - 1:s.end - q;
+										q = 0; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 									}
 									
 									if (m == 0)
 									{
-										s.bitb = b; s.bitk = k;
+										s.BitB = b; s.BitK = k;
 										z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-										s.write = q;
+										s.WritePos = q;
 										return s.inflate_flush(z, r);
 									}
 								}
 							}
 							
-							s.window[q++] = s.window[f++]; m--;
+							s.Window[q++] = s.Window[f++]; m--;
 							
-							if (f == s.end)
+							if (f == s.End)
 								f = 0;
-							len--;
+							count--;
 						}
-						mode = START;
+						mode =  InflateCodesMode.START;
 						break;
 					
-					case LIT:  // o: got literal, waiting for output space
+					case  InflateCodesMode.LIT:  // o: got literal, waiting for output space
 						if (m == 0)
 						{
-							if (q == s.end && s.read != 0)
+							if (q == s.End && s.ReadPos != 0)
 							{
-								q = 0; m = q < s.read?s.read - q - 1:s.end - q;
+								q = 0; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 							}
 							if (m == 0)
 							{
-								s.write = q; r = s.inflate_flush(z, r);
-								q = s.write; m = q < s.read?s.read - q - 1:s.end - q;
+								s.WritePos = q; r = s.inflate_flush(z, r);
+								q = s.WritePos; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 								
-								if (q == s.end && s.read != 0)
+								if (q == s.End && s.ReadPos != 0)
 								{
-									q = 0; m = q < s.read?s.read - q - 1:s.end - q;
+									q = 0; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 								}
 								if (m == 0)
 								{
-									s.bitb = b; s.bitk = k;
+									s.BitB = b; s.BitK = k;
 									z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-									s.write = q;
+									s.WritePos = q;
 									return s.inflate_flush(z, r);
 								}
 							}
 						}
-						r = Z_OK;
+						r = (int)ZLibResultCode.Z_OK;
 						
-						s.window[q++] = (byte) lit; m--;
+						s.Window[q++] = (byte) lit; m--;
 						
-						mode = START;
+						mode =  InflateCodesMode.START;
 						break;
 					
-					case WASH:  // o: got eob, possibly more output
+					case  InflateCodesMode.WASH:  // o: got eob, possibly more output
 						if (k > 7)
 						{
 							// return unused byte, if any
@@ -426,59 +481,63 @@ namespace Zlib
 							p--; // can always return one
 						}
 						
-						s.write = q; r = s.inflate_flush(z, r);
-						q = s.write; m = q < s.read?s.read - q - 1:s.end - q;
+						s.WritePos = q; r = s.inflate_flush(z, r);
+						q = s.WritePos; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 						
-						if (s.read != s.write)
+						if (s.ReadPos != s.WritePos)
 						{
-							s.bitb = b; s.bitk = k;
+							s.BitB = b; s.BitK = k;
 							z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-							s.write = q;
+							s.WritePos = q;
 							return s.inflate_flush(z, r);
 						}
-						mode = END;
-						goto case END;
+						mode =  InflateCodesMode.END;
+						goto case  InflateCodesMode.END;
 					
-					case END: 
-						r = Z_STREAM_END;
-						s.bitb = b; s.bitk = k;
+					case  InflateCodesMode.END: 
+						r = (int)ZLibResultCode.Z_STREAM_END;
+						s.BitB = b; s.BitK = k;
 						z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-						s.write = q;
+						s.WritePos = q;
 						return s.inflate_flush(z, r);
 					
 					
-					case BADCODE:  // x: got error
+					case  InflateCodesMode.BADCODE:  // x: got error
 						
-						r = Z_DATA_ERROR;
+						r = (int)ZLibResultCode.Z_DATA_ERROR;
 						
-						s.bitb = b; s.bitk = k;
+						s.BitB = b; s.BitK = k;
 						z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-						s.write = q;
+						s.WritePos = q;
 						return s.inflate_flush(z, r);
 					
 					
 					default: 
-						r = Z_STREAM_ERROR;
+						r = (int)ZLibResultCode.Z_STREAM_ERROR;
 						
-						s.bitb = b; s.bitk = k;
+						s.BitB = b; s.BitK = k;
 						z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-						s.write = q;
+						s.WritePos = q;
 						return s.inflate_flush(z, r);
 					
 				}
 			}
 		}
 		
+        /// <summary>
+        /// Frees allocated resources
+        /// </summary>
 		internal void  free(ZStream z)
 		{
-			//  ZFREE(z, c);
 		}
 		
-		// Called with number of bytes left to write in window at least 258
-		// (the maximum string length) and number of input bytes available
-		// at least ten.  The ten bytes are six bytes for the longest length/
-		// distance pair plus four bytes for overloading the bit buffer.
-		
+
+	    /// <summary>
+        /// Fast inflate procedure. Called with number of bytes left to WritePos in Window at least 258
+        /// (the maximum string length) and number of input bytes available
+        /// at least ten.  The ten bytes are six bytes for the longest length/
+        /// distance pair plus four bytes for overloading the bit buffer.
+	    /// </summary>
 		internal int inflate_fast(int bl, int bd, int[] tl, int tl_index, int[] td, int td_index, InfBlocks s, ZStream z)
 		{
 			int t; // temporary pointer
@@ -489,8 +548,8 @@ namespace Zlib
 			int k; // bits in bit buffer
 			int p; // input data pointer
 			int n; // bytes available there
-			int q; // output window write pointer
-			int m; // bytes to end of window or read pointer
+			int q; // output Window WritePos pointer
+			int m; // bytes to End of Window or ReadPos pointer
 			int ml; // mask for literal/length tree
 			int md; // mask for distance tree
 			int c; // bytes to copy
@@ -498,12 +557,12 @@ namespace Zlib
 			int r; // copy source pointer
 			
 			// load input, output, bit values
-			p = z.next_in_index; n = z.avail_in; b = s.bitb; k = s.bitk;
-			q = s.write; m = q < s.read?s.read - q - 1:s.end - q;
+			p = z.next_in_index; n = z.avail_in; b = s.BitB; k = s.BitK;
+			q = s.WritePos; m = q < s.ReadPos?s.ReadPos - q - 1:s.End - q;
 			
 			// initialize masks
-			ml = inflate_mask[bl];
-			md = inflate_mask[bd];
+			ml = ZLibUtil.inflate_mask[bl];
+			md = ZLibUtil.inflate_mask[bd];
 			
 			// do until not enough input or output space for fast loop
 			do 
@@ -524,7 +583,7 @@ namespace Zlib
 				{
 					b >>= (tp[(tp_index + t) * 3 + 1]); k -= (tp[(tp_index + t) * 3 + 1]);
 					
-					s.window[q++] = (byte) tp[(tp_index + t) * 3 + 2];
+					s.Window[q++] = (byte) tp[(tp_index + t) * 3 + 2];
 					m--;
 					continue;
 				}
@@ -536,7 +595,7 @@ namespace Zlib
 					if ((e & 16) != 0)
 					{
 						e &= 15;
-						c = tp[(tp_index + t) * 3 + 2] + ((int) b & inflate_mask[e]);
+						c = tp[(tp_index + t) * 3 + 2] + ((int) b & ZLibUtil.inflate_mask[e]);
 						
 						b >>= e; k -= e;
 						
@@ -569,7 +628,7 @@ namespace Zlib
 									b |= (z.next_in[p++] & 0xff) << k; k += 8;
 								}
 								
-								d = tp[(tp_index + t) * 3 + 2] + (b & inflate_mask[e]);
+								d = tp[(tp_index + t) * 3 + 2] + (b & ZLibUtil.inflate_mask[e]);
 								
 								b >>= (e); k -= (e);
 								
@@ -582,12 +641,12 @@ namespace Zlib
 									r = q - d;
 									if (q - r > 0 && 2 > (q - r))
 									{
-										s.window[q++] = s.window[r++]; c--; // minimum count is three,
-										s.window[q++] = s.window[r++]; c--; // so unroll loop a little
+										s.Window[q++] = s.Window[r++]; c--; // minimum count is three,
+										s.Window[q++] = s.Window[r++]; c--; // so unroll loop a little
 									}
 									else
 									{
-										Array.Copy(s.window, r, s.window, q, 2);
+										Array.Copy(s.Window, r, s.Window, q, 2);
 										q += 2; r += 2; c -= 2;
 									}
 								}
@@ -597,10 +656,10 @@ namespace Zlib
 									r = q - d;
 									do 
 									{
-										r += s.end; // force pointer in window
+										r += s.End; // force pointer in Window
 									}
 									while (r < 0); // covers invalid distances
-									e = s.end - r;
+									e = s.End - r;
 									if (c > e)
 									{
 										// if source crosses,
@@ -609,16 +668,16 @@ namespace Zlib
 										{
 											do 
 											{
-												s.window[q++] = s.window[r++];
+												s.Window[q++] = s.Window[r++];
 											}
 											while (--e != 0);
 										}
 										else
 										{
-											Array.Copy(s.window, r, s.window, q, e);
+											Array.Copy(s.Window, r, s.Window, q, e);
 											q += e; r += e; e = 0;
 										}
-										r = 0; // copy rest from start of window
+										r = 0; // copy rest from start of Window
 									}
 								}
 								
@@ -627,13 +686,13 @@ namespace Zlib
 								{
 									do 
 									{
-										s.window[q++] = s.window[r++];
+										s.Window[q++] = s.Window[r++];
 									}
 									while (--c != 0);
 								}
 								else
 								{
-									Array.Copy(s.window, r, s.window, q, c);
+									Array.Copy(s.Window, r, s.Window, q, c);
 									q += c; r += c; c = 0;
 								}
 								break;
@@ -641,7 +700,7 @@ namespace Zlib
 							else if ((e & 64) == 0)
 							{
 								t += tp[(tp_index + t) * 3 + 2];
-								t += (b & inflate_mask[e]);
+								t += (b & ZLibUtil.inflate_mask[e]);
 								e = tp[(tp_index + t) * 3];
 							}
 							else
@@ -650,11 +709,11 @@ namespace Zlib
 								
 								c = z.avail_in - n; c = (k >> 3) < c?k >> 3:c; n += c; p -= c; k -= (c << 3);
 								
-								s.bitb = b; s.bitk = k;
+								s.BitB = b; s.BitK = k;
 								z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-								s.write = q;
+								s.WritePos = q;
 								
-								return Z_DATA_ERROR;
+								return (int)ZLibResultCode.Z_DATA_ERROR;
 							}
 						}
 						while (true);
@@ -664,13 +723,13 @@ namespace Zlib
 					if ((e & 64) == 0)
 					{
 						t += tp[(tp_index + t) * 3 + 2];
-						t += (b & inflate_mask[e]);
+						t += (b & ZLibUtil.inflate_mask[e]);
 						if ((e = tp[(tp_index + t) * 3]) == 0)
 						{
 							
 							b >>= (tp[(tp_index + t) * 3 + 1]); k -= (tp[(tp_index + t) * 3 + 1]);
 							
-							s.window[q++] = (byte) tp[(tp_index + t) * 3 + 2];
+							s.Window[q++] = (byte) tp[(tp_index + t) * 3 + 2];
 							m--;
 							break;
 						}
@@ -680,11 +739,11 @@ namespace Zlib
 						
 						c = z.avail_in - n; c = (k >> 3) < c?k >> 3:c; n += c; p -= c; k -= (c << 3);
 						
-						s.bitb = b; s.bitk = k;
+						s.BitB = b; s.BitK = k;
 						z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-						s.write = q;
+						s.WritePos = q;
 						
-						return Z_STREAM_END;
+						return (int)ZLibResultCode.Z_STREAM_END;
 					}
 					else
 					{
@@ -692,11 +751,11 @@ namespace Zlib
 						
 						c = z.avail_in - n; c = (k >> 3) < c?k >> 3:c; n += c; p -= c; k -= (c << 3);
 						
-						s.bitb = b; s.bitk = k;
+						s.BitB = b; s.BitK = k;
 						z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-						s.write = q;
+						s.WritePos = q;
 						
-						return Z_DATA_ERROR;
+						return (int)ZLibResultCode.Z_DATA_ERROR;
 					}
 				}
 				while (true);
@@ -706,11 +765,13 @@ namespace Zlib
 			// not enough input or output--restore pointers and return
 			c = z.avail_in - n; c = (k >> 3) < c?k >> 3:c; n += c; p -= c; k -= (c << 3);
 			
-			s.bitb = b; s.bitk = k;
+			s.BitB = b; s.BitK = k;
 			z.avail_in = n; z.total_in += p - z.next_in_index; z.next_in_index = p;
-			s.write = q;
+			s.WritePos = q;
 			
-			return Z_OK;
+			return (int)ZLibResultCode.Z_OK;
 		}
-	}
+
+        #endregion
+    }
 }

@@ -43,11 +43,16 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 * Jean-loup Gailly(jloup@gzip.org) and Mark Adler(madler@alumni.caltech.edu)
 * and contributors of zlib.
 */
+
 using System;
-namespace Zlib
+
+namespace ZLib
 {
 	
-	sealed class Adler32
+    /// <summary>
+    /// This class represents adler32 checksum algorithm
+    /// </summary>
+	internal class Adler32
 	{
 		
 		// largest prime smaller than 65536
@@ -55,7 +60,10 @@ namespace Zlib
 		// NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1
 		private const int NMAX = 5552;
 		
-		internal long adler32(long adler, byte[] buf, int index, int len)
+        /// <summary>
+        /// This static method returns adler32 checksum of the buffer data
+        /// </summary>
+		internal static long GetAdler32Checksum(long adler, byte[] buf, int index, int len)
 		{
 			if (buf == null)
 			{
