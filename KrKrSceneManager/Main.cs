@@ -4,10 +4,11 @@ using System.Text;
 using ZLib;
 
 namespace KrKrSceneManager
-{
+{    
     public class CompressionLevel : ZLibCompressionLevel { }
     public class SCENE
     {
+        private bool blankstr;
         private int DefaultOffsetSize;
         private int StringTable;
         private int OffsetTable;
@@ -32,19 +33,18 @@ namespace KrKrSceneManager
             }
             string[] Offsets = new string[StringTable - Script.Length];
             string[] strings = new string[0];
-            int disc = 0;
-            #region OldVersion
-            /*if (NotHaveNullString)
+            int diff = 0;
+            if (blankstr)//this make a more compact script. Yes, 1 byte less can make difference (because the limited offset size)
             {
                 string[] hex = Tools.U8StringToHex(Strings[0]);
                 string[] tmp = new string[strings.Length + hex.Length];
                 strings.CopyTo(tmp, 0);
                 hex.CopyTo(tmp, strings.Length);
                 strings = tmp;
-                disc = 1;
-            }*/
-#endregion
-            for (int pos = disc; pos < Strings.Length; pos++)
+                Offsets = writeOffset(Offsets, 0 * DefaultOffsetSize, 0);
+                diff = 1;
+            }
+            for (int pos = diff; pos < Strings.Length; pos++)
             {
                 Status = "Compiling strings... (" + (pos * 100) / Strings.Length + "%)";
                 string[] hex = Tools.U8StringToHex(Strings[pos]);
@@ -54,7 +54,7 @@ namespace KrKrSceneManager
                 int offset = (strings.Length + 1);
                 hex.CopyTo(tmp, strings.Length + 1);
                 strings = tmp;
-                Offsets = writeOffset(Offsets, (pos - disc) * DefaultOffsetSize, offset);
+                Offsets = writeOffset(Offsets, pos * DefaultOffsetSize, offset);
             }
             if (havePosFix)
             {
@@ -219,28 +219,34 @@ namespace KrKrSceneManager
             }
             //new method end*/
             #endregion
-            int BRUTEFORCEBUFFER = 4;
+            int BRUTEFORCEBUFFER = 4;//Start of the best way to detect offset size and position
             int minimalsize = 0;
-            while (scene.Length - StringTablePos > (minimalsize * 255)*255) //calculate the minimal size to strings offset by file size
+            while (scene.Length - StringTablePos > elevate(0xFF, minimalsize)) //calculate the minimal size to strings offset by file size
                 minimalsize++;
-            minimalsize++;
             int[] offsets = new int[0];
+            if (scene[StringTablePos] != "00")//to detect scripts without blank strings (01_05_c.ks.scn from nekopara for sample)
+            {
+                blankstr = true;
+                int[] tmp = new int[offsets.Length + 1];
+                offsets.CopyTo(tmp, 0);
+                tmp[offsets.Length] = 0;
+                offsets = tmp;
+            }
             for (int pos = 0; pos + StringTablePos < scene.Length; pos++) //generate string position tree
                 if (scene[StringTablePos + pos] == "00")
                 {
-                    int[] tmp = new int[offsets.Length+1];
+                    int[] tmp = new int[offsets.Length + 1];
                     offsets.CopyTo(tmp, 0);
-                    tmp[offsets.Length] = pos+1;
+                    tmp[offsets.Length] = pos + 1;
                     offsets = tmp;
                 }
             if (offsets.Length <= BRUTEFORCEBUFFER)
-                BRUTEFORCEBUFFER = offsets.Length-1;
+                BRUTEFORCEBUFFER = offsets.Length - 1;
             for (int size = minimalsize; ; size++)//find offsets position with diff offset size
             {
                 bool okay = false;
-                string[] OffTable = genOffsetTable(offsets, BRUTEFORCEBUFFER, size);
-                for (int i = 0; i < size * BRUTEFORCEBUFFER; i++)
-                {
+                string[] OffTable = genOffsetTable(offsets, BRUTEFORCEBUFFER, size);//generate table with specifed offset size
+                for (int i = 0; i < size * BRUTEFORCEBUFFER; i++)//find offset table in (size * BRUTEFORCEBUFFER) range
                     if (EqualsAt(scene, OffTable, OffsetTablePos + i))
                     {
                         TablePrefixSize = i;
@@ -248,13 +254,13 @@ namespace KrKrSceneManager
                         okay = true;
                         break;
                     }
-                }
                 if (okay)
                     break;
             }
 
             scn.DefaultOffsetSize = DefaultOffsetSize;
             scn.TablePrefixSize = TablePrefixSize;
+            scn.blankstr = blankstr;
             string[] strs = new string[0];
             #region OldVersion
             //scn.NotHaveNullString = NotHaveNullString;
@@ -310,13 +316,26 @@ namespace KrKrSceneManager
             return scn;
         }
 
-        private bool EqualsAt(string[] scene, string[] offTable, int offsetTablePos)
-        {
-            if (offsetTablePos + offTable.Length > scene.Length)
-                return false;
-            for (int pos = 0; pos < offTable.Length; pos++)
+        private int elevate(int ValueToElevate, int ElevateTimes) {
+            if (ElevateTimes == 0)
+                return 0;
+            int elevate = 1;
+            int value = ValueToElevate;
+            while (elevate < ElevateTimes)
             {
-                if (scene[offsetTablePos + pos] != offTable[pos])
+                value *= ValueToElevate;
+                elevate++;
+            }
+            return value;
+        }
+
+        private bool EqualsAt(string[] OriginalData, string[] DataToCompare, int PositionToStartCompare)
+        {
+            if (PositionToStartCompare + DataToCompare.Length > OriginalData.Length)
+                return false;
+            for (int pos = 0; pos < DataToCompare.Length; pos++)
+            {
+                if (OriginalData[PositionToStartCompare + pos] != DataToCompare[pos])
                     return false;
             }
             return true;
