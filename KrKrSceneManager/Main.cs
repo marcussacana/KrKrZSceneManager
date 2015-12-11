@@ -175,7 +175,7 @@ namespace KrKrSceneManager
                 byte[] DecompressedScene;
                 Tools.DecompressData((byte[])tmp, out DecompressedScene);
                 if (GetOffset(scene, 4, 4, false) != DecompressedScene.Length)
-                    throw new Exception("Corrupted MDF Header or KrKrSceneManager Data");
+                    throw new Exception("Corrupted MDF Header or Zlib Data");
                 scene = DecompressedScene;
             }
             if (getRange(scene, 0, 3) != "505342")
