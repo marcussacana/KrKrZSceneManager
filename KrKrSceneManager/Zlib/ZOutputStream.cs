@@ -44,7 +44,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System;
 using System.IO;
 
-namespace ZLib
+namespace KrKrSceneManager
 {
 	
     /// <summary>
@@ -163,7 +163,7 @@ namespace ZLib
 		/// Constructor which takes two parameters: the <paramref name="stream"/> to store compressed data in and the desired compression level.
 		/// </summary>
 		/// <param name="stream">A stream to be used to store compressed data.</param>
-		/// <param name="level">An integer value indicating the desired compression level. The compression level can take values from 0 to 9. The maximum value indicates that the maximum compression should be achieved (but this method will be the slowest one). 0 means that no compression should be used at all. If you want to use the default compression level you can pass -1. Also you can use the constants from the <see cref="ZLibCompressionLevel" /> class.</param>
+		/// <param name="level">An integer value indicating the desired compression level. The compression level can take values from 0 to 9. The maximum value indicates that the maximum compression should be achieved (but this method will be the slowest one). 0 means that no compression should be used at all. If you want to use the default compression level you can pass -1. Also you can use the constants from the <see cref="CompressionLevel" /> class.</param>
 		internal ZOutputStream(System.IO.Stream stream, int level)
 		{
 			InitBlock();

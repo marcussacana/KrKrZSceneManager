@@ -44,7 +44,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System;
 
 
-namespace ZLib
+namespace KrKrSceneManager
 {
 
     internal enum InflateBlockMode

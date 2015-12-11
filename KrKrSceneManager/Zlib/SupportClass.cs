@@ -2,7 +2,7 @@
 using System;
 
 
-namespace ZLib
+namespace KrKrSceneManager
 {
 	internal class SupportClass
 	{

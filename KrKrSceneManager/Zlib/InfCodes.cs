@@ -43,7 +43,7 @@ EVEN IF ADVISED OF THE POSSIBI InflateCodesMode.LITY OF SUCH DAMAGE.
 */
 using System;
 
-namespace ZLib
+namespace KrKrSceneManager
 {
 
     /// <summary>

@@ -44,13 +44,13 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System;
 
 
-namespace ZLib
+namespace KrKrSceneManager
 {
 
     /// <summary>
     /// Some constants for specifying compression levels. Methods which takes a compression level as a parameter expects an integer value from 0 to 9. You can either specify an integer value or use constants for some most widely used compression levels.
     /// </summary>
-    public class ZLibCompressionLevel
+    public class CompressionLevel
     {
         /// <summary>
         ///  No compression should be used at all.

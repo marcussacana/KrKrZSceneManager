@@ -1,11 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using ZLib;
 
 namespace KrKrSceneManager
-{    
-    public class CompressionLevel : ZLibCompressionLevel { }
+{  
     public class SCENE
     {
         private bool blankstr;
@@ -14,30 +12,30 @@ namespace KrKrSceneManager
         private int OffsetTable;
         private bool havePosFix = false;
         private string Status = "Not Open";
-        private string[] Source = new string[0];
-        private string[] posfix = new string[0];
+        private byte[] Source = new byte[0];
+        private byte[] posfix = new byte[0];
         private int TablePrefixSize = 0;
         public bool CompressScene = false;
-        public int CompressionLevel = ZLibCompressionLevel.Z_BEST_COMPRESSION;
+        public int CompressionLevel = 9;
         public string[] Strings = new string[0];
 
         public byte[] export()
         {
             if (Source.Length == 0)
                 throw new Exception("You need import a scene before export.");
-            string[] Script = new string[OffsetTable + TablePrefixSize];
+            byte[] Script = new byte[OffsetTable + TablePrefixSize];
             for (int pos = 0; pos < Script.Length; pos++)
             {
                 Status = "Copying Script...";
                 Script[pos] = Source[pos];
             }
-            string[] Offsets = new string[StringTable - Script.Length];
-            string[] strings = new string[0];
+            byte[] Offsets = new byte[StringTable - Script.Length];
+            byte[] strings = new byte[0];
             int diff = 0;
             if (blankstr)//this make a more compact script. Yes, 1 byte less can make difference (because the limited offset size)
             {
-                string[] hex = Tools.U8StringToHex(Strings[0]);
-                string[] tmp = new string[strings.Length + hex.Length];
+                byte[] hex = Tools.U8StringToByte(Strings[0]);
+                byte[] tmp = new byte[strings.Length + hex.Length];
                 strings.CopyTo(tmp, 0);
                 hex.CopyTo(tmp, strings.Length);
                 strings = tmp;
@@ -47,10 +45,10 @@ namespace KrKrSceneManager
             for (int pos = diff; pos < Strings.Length; pos++)
             {
                 Status = "Compiling strings... (" + (pos * 100) / Strings.Length + "%)";
-                string[] hex = Tools.U8StringToHex(Strings[pos]);
-                string[] tmp = new string[strings.Length + hex.Length + 1];
+                byte[] hex = Tools.U8StringToByte(Strings[pos]);
+                byte[] tmp = new byte[strings.Length + hex.Length + 1];
                 strings.CopyTo(tmp, 0);
-                tmp[strings.Length] = "00";
+                tmp[strings.Length] = 0x00;
                 int offset = (strings.Length + 1);
                 hex.CopyTo(tmp, strings.Length + 1);
                 strings = tmp;
@@ -59,7 +57,7 @@ namespace KrKrSceneManager
             if (havePosFix)
             {
                 Status = "Additing aditional content...";
-                string[] tmp = new string[strings.Length + posfix.Length];
+                byte[] tmp = new byte[strings.Length + posfix.Length];
                 strings.CopyTo(tmp, 0);
                 for (int i = strings.Length; (i - strings.Length) < posfix.Length; i++)
                 {
@@ -68,7 +66,7 @@ namespace KrKrSceneManager
                 strings = tmp;
             }
             Status = "Generating new scene...";
-            string[] temp = new string[Script.Length + Offsets.Length + strings.Length];
+            byte[] temp = new byte[Script.Length + Offsets.Length + strings.Length];
             Script.CopyTo(temp, 0);
             Offsets.CopyTo(temp, Script.Length);
             strings.CopyTo(temp, Script.Length + Offsets.Length);
@@ -76,14 +74,14 @@ namespace KrKrSceneManager
             if (CompressScene)
             {
                 byte[] CompressedScript;
-                Tools.CompressData(Tools.StringToByteArray(Script), CompressionLevel, out CompressedScript);
+                Tools.CompressData(Script, CompressionLevel, out CompressedScript);
                 byte[] RetData = new byte[8 + CompressedScript.Length];
                 (new byte[] { 0x6D, 0x64, 0x66, 0x00 }).CopyTo(RetData, 0);
                 genOffset(4, Script.Length).CopyTo(RetData, 4);
                 CompressedScript.CopyTo(RetData, 8);
                 return RetData;
             }
-            return Tools.StringToByteArray(Script);
+            return Script;
         }
 
         private byte[] genOffset(int size, int Value)
@@ -123,23 +121,19 @@ namespace KrKrSceneManager
             }
             return Tools.StringToByteArray(result);
         }
-        private string[] writeOffset(string[] offsets, int position, int Value)
+        private byte[] writeOffset(byte[] offsets, int position, int Value)
         {
-            string[] result = offsets;
-            string var = Tools.IntToHex(Value);
-            if (var.Length % 2 != 0)
-            {
-                var = 0 + var;
-            }
-            if (var.Length / 2 > DefaultOffsetSize)
+            byte[] result = offsets;
+            byte[] var = Tools.IntToByte(Value);
+            if (var.Length > DefaultOffsetSize)
             {
                 throw new Exception("Edited Strings are too big.");
             }
-            string[] hex = new string[var.Length / 2];
+            byte[] hex = new byte[var.Length];
             int tmp = 0;
-            for (int i = var.Length - 2; i > -2; i -= 2)
+            for (int i = var.Length - 1; i >= 0; i--)
             {
-                hex[tmp] = var.Substring(i, 2);
+                hex[tmp] = var[i];
                 tmp++;
             }
             tmp = 0;
@@ -152,31 +146,39 @@ namespace KrKrSceneManager
                 }
                 else
                 {
-                    result[i] = "00";
+                    result[i] = 0x00;
                 }
                 tmp++;
             }
             return result;
         }
 
+        private string getRange(byte[] file, int pos, int length)
+        {
+            byte[] rest = new byte[length];
+            for (int i = 0; i < length; i++)
+            {
+                rest[i] = file[pos + i];
+            }
+            return Tools.ByteArrayToString(rest).Replace("-", "");
+        }
         public SCENE import(byte[] Bin)
         {
-            string[] scene = new string[0];
+            byte[] scene = new byte[0];
             SCENE scn = new SCENE();
-            scene = Tools.ByteArrayToString(Bin).Split('-');
-            if (scene[0] + scene[1] + scene[2] + scene[3] == "6D646600")
+            scene = Bin;
+            if (getRange(scene, 0, 4) == "6D646600")
             {
-                object tmp = new string[scene.Length - 8];
+                object tmp = new byte[scene.Length - 8];
                 for (int i = 8; i < scene.Length; i++)
-                    ((string[])tmp)[i - 8] = scene[i];
-                tmp = Tools.StringToByteArray((string[])tmp);
+                    ((byte[])tmp)[i - 8] = scene[i];
                 byte[] DecompressedScene;
                 Tools.DecompressData((byte[])tmp, out DecompressedScene);
                 if (GetOffset(scene, 4, 4, false) != DecompressedScene.Length)
-                    throw new Exception("Corrupted MDF Header or Zlib Data");
-                scene = Tools.ByteArrayToString(DecompressedScene).Split('-');
+                    throw new Exception("Corrupted MDF Header or KrKrSceneManager Data");
+                scene = DecompressedScene;
             }
-            if (scene[0] + scene[1] + scene[2] != "505342")
+            if (getRange(scene, 0, 3) != "505342")
                 throw new Exception("Invalid KrKrZ Scene binary");
             scn.Source = scene;
             Status = "Reading Header...";
@@ -186,45 +188,12 @@ namespace KrKrSceneManager
             scn.StringTable = StringTablePos;
             int DefaultOffsetSize = 0;
             Status = "Getting Offsets Size...";
-            #region OldRegion
-            /*
-            NotHaveNullString = false;
-            TablePrefixSize = 4;
-            for (int index = OffsetTablePos + 4; scene[index] == "00"; index++) //Old Method, crash if script don't have null string call's
-            {
-                DefaultOffsetSize++;
-            }*/
-            /*
-            //new method start
-            bool ZeroApper = false;
-            for (int index = OffsetTablePos; scene[index] != "01" || !ZeroApper; index++)
-            {
-                string ActualByte = scene[index];
-                if (ActualByte == "00")
-                    ZeroApper = true;
-                if (ZeroApper)
-                {
-                    if (ActualByte == "00")
-                        DefaultOffsetSize++;
-                    else
-                    {
-                        NotHaveNullString = true; // if the compiled script don't have blank strings the exist a string without offset
-                        break;
-                    }
-                }
-                else
-                {
-                    TablePrefixSize++;
-                }
-            }
-            //new method end*/
-            #endregion
             int BRUTEFORCEBUFFER = 4;//Start of the best way to detect offset size and position
             int minimalsize = 0;
             while (scene.Length - StringTablePos > elevate(0xFF, minimalsize)) //calculate the minimal size to strings offset by file size
                 minimalsize++;
             int[] offsets = new int[0];
-            if (scene[StringTablePos] != "00")//to detect scripts without blank strings (01_05_c.ks.scn from nekopara for sample)
+            if (scene[StringTablePos] != 0x00)//to detect scripts without blank strings (01_05_c.ks.scn from nekopara for sample)
             {
                 blankstr = true;
                 int[] tmp = new int[offsets.Length + 1];
@@ -233,7 +202,7 @@ namespace KrKrSceneManager
                 offsets = tmp;
             }
             for (int pos = 0; pos + StringTablePos < scene.Length; pos++) //generate string position tree
-                if (scene[StringTablePos + pos] == "00")
+                if (scene[StringTablePos + pos] == 0x00)
                 {
                     int[] tmp = new int[offsets.Length + 1];
                     offsets.CopyTo(tmp, 0);
@@ -245,7 +214,7 @@ namespace KrKrSceneManager
             for (int size = minimalsize; ; size++)//find offsets position with diff offset size
             {
                 bool okay = false;
-                string[] OffTable = genOffsetTable(offsets, BRUTEFORCEBUFFER, size);//generate table with specifed offset size
+                byte[] OffTable = genOffsetTable(offsets, BRUTEFORCEBUFFER, size);//generate table with specifed offset size
                 for (int i = 0; i < size * BRUTEFORCEBUFFER; i++)//find offset table in (size * BRUTEFORCEBUFFER) range
                     if (EqualsAt(scene, OffTable, OffsetTablePos + i))
                     {
@@ -262,23 +231,13 @@ namespace KrKrSceneManager
             scn.TablePrefixSize = TablePrefixSize;
             scn.blankstr = blankstr;
             string[] strs = new string[0];
-            #region OldVersion
-            //scn.NotHaveNullString = NotHaveNullString;
-            /*if (NotHaveNullString)
-            {
-                string[] temp = new string[strs.Length + 1];
-                strs.CopyTo(temp, 0);
-                temp[strs.Length] = GetString(scene, StringTablePos);
-                strs = temp;
-            }*/
-            #endregion
             for (int pos = OffsetTablePos + TablePrefixSize; pos < StringTablePos; pos += DefaultOffsetSize)
             {
                 Status = "Importing Strings... (" + (pos * 100) / StringTablePos + "%)";
                 string[] temp = new string[strs.Length + 1];
                 strs.CopyTo(temp, 0);
                 int index = GetOffset(scene, pos, DefaultOffsetSize, false) + StringTablePos;
-                if (scene[index] == "00")
+                if (scene[index] == 0x00)
                 {
                     temp[strs.Length] = string.Empty;
                     strs = temp;
@@ -291,7 +250,7 @@ namespace KrKrSceneManager
                 if (pos + DefaultOffsetSize >= StringTablePos)
                 {
                     int EndLast = -1;
-                    for (int i = GetOffset(scene, pos, DefaultOffsetSize, false) + StringTablePos; scene[i] != "00" && i < scene.Length; i++)
+                    for (int i = GetOffset(scene, pos, DefaultOffsetSize, false) + StringTablePos; scene[i] != 0x00 && i < scene.Length; i++)
                     {
                         EndLast = i;
                         if (i + 1 > scene.Length)
@@ -303,7 +262,7 @@ namespace KrKrSceneManager
                         scn.havePosFix = true;
                         for (int i = EndLast; i < scene.Length; i++)
                         {
-                            string[] tmp = new string[scn.posfix.Length + 1];
+                            byte[] tmp = new byte[scn.posfix.Length + 1];
                             scn.posfix.CopyTo(tmp, 0);
                             tmp[scn.posfix.Length] = scene[i];
                             scn.posfix = tmp;
@@ -329,7 +288,7 @@ namespace KrKrSceneManager
             return value;
         }
 
-        private bool EqualsAt(string[] OriginalData, string[] DataToCompare, int PositionToStartCompare)
+        private bool EqualsAt(byte[] OriginalData, byte[] DataToCompare, int PositionToStartCompare)
         {
             if (PositionToStartCompare + DataToCompare.Length > OriginalData.Length)
                 return false;
@@ -341,12 +300,12 @@ namespace KrKrSceneManager
             return true;
         }
 
-        private string[] genOffsetTable(int[] offsets, int BRUTEFORCEBUFFER, int size)
+        private byte[] genOffsetTable(int[] offsets, int BRUTEFORCEBUFFER, int size)
         {
-            string[] table = new string[size * BRUTEFORCEBUFFER];
+            byte[] table = new byte[size * BRUTEFORCEBUFFER];
             for (int i = 0; i < BRUTEFORCEBUFFER; i++)
             {
-                string[] offset = Tools.ByteArrayToString(genOffset(size, offsets[i])).Split('-');
+                byte[] offset = genOffset(size, offsets[i]);
                 offset.CopyTo(table, i*size);
             }
             return table;
@@ -357,29 +316,42 @@ namespace KrKrSceneManager
             return Status;
         }
 
-        private string GetString(string[] scene, int pos)
+        private string GetString(byte[] scene, int pos)
         {
             string hex = "";
-            for (int i = pos; scene[i] != "00" && i + 1 < scene.Length; i++)
-                hex += scene[i] + "-";
+            for (int i = pos; scene[i] != 0x00 && i + 1 < scene.Length; i++)
+                hex += scene[i].ToString("x").ToUpper() + "-";
             hex = hex.Substring(0, hex.Length - 1);
             return Tools.U8HexToString(hex.Split('-')).Replace("\n", "\\n");
         }
 
-        private int GetOffset(string[] file, int index, int OffsetSize, bool reverse)
+        private int GetOffset(byte[] file, int index, int OffsetSize, bool reverse)
         {
             if (reverse)
             {
                 string hex = "";
-                for (int i = index; i < index + OffsetSize; i++)
-                    hex += file[i + index];
+                for (int i = index; i < index + OffsetSize; i++) { 
+                    string var = file[i + index].ToString("x").ToUpper();
+                if (var.Length % 2 != 0)
+                {
+                    var = 0 + var;
+                }
+                hex += var;
+            }
                 return Tools.HexToInt(hex);
             }
             else
             {
                 string hex = "";
                 for (int i = (index + OffsetSize - 1); i > (index - 1); i--)
-                    hex += file[i];
+                {
+                    string var = file[i].ToString("x").ToUpper();
+                    if (var.Length % 2 != 0)
+                    {
+                        var = 0 + var;
+                    }
+                    hex += var;
+                }
                 return Tools.HexToInt(hex);
             }
         }
@@ -447,7 +419,15 @@ namespace KrKrSceneManager
         {
             return val.ToString("X");
         }
-
+        public static byte[] IntToByte(int val)
+        {
+            string var = IntToHex(val);
+            if (var.Length % 2 != 0)
+            {
+                var = 0 + var;
+            }
+            return StringToByteArray(var);
+        }
         public static string StringToHex(string _in)
         {
             string input = _in;
@@ -508,6 +488,13 @@ namespace KrKrSceneManager
             byte[] cnt = encoder.GetBytes(text.ToCharArray());
             return ByteArrayToString(cnt).Split('-');
         }
+
+        public static byte[] U8StringToByte(string text)
+        {
+            UTF8Encoding encoder = new UTF8Encoding();
+            return encoder.GetBytes(text.ToCharArray());
+        }
+
         public static byte[] StringToByteArray(string hex)
         {
             try
