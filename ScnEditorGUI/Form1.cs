@@ -16,7 +16,7 @@ namespace ScnEditorGUI
         {
             OpenFileDialog fd = new OpenFileDialog();
             fd.FileName = "";
-            fd.Filter = "All KiriKiri SCN Files | *.scn";
+            fd.Filter = "All KiriKiri SCN Files | *.scn|Pack of Tlgs Files (Unstable) | *.pimg";
             DialogResult dr = fd.ShowDialog();
             if (dr == DialogResult.OK)
                 OpenFile(fd.FileName);
@@ -25,15 +25,25 @@ namespace ScnEditorGUI
         public object SCN = new object(); //I use this for tests 
         private void OpenFile(string fname)
         {
-            listBox1.Items.Clear();
-            SCENE scn = (new SCENE()).import(System.IO.File.ReadAllBytes(fname));
-            SCN = scn;
-            foreach (string str in ((SCENE)SCN).Strings)
+            if (fname.EndsWith(".pimg"))
             {
-                listBox1.Items.Add(str);
+                MessageBox.Show("WARNING - You are using a very unstable resource.", "Unstable Resource Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                PackImgFormat PIF = new PackImgFormat();
+                TlgFile[] Rst = PIF.Import(System.IO.File.ReadAllBytes(fname));
+                for (int i = 0; i < Rst.Length; i++)
+                    System.IO.File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + i + "-pimg.tlg", Rst[i].Data);
+                MessageBox.Show("Tlgs save in the program directory...", "Unstable, But works ^^", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else {
+                listBox1.Items.Clear();
+                SCENE scn = (new SCENE()).import(System.IO.File.ReadAllBytes(fname));
+                SCN = scn;
+                foreach (string str in ((SCENE)SCN).Strings)
+                {
+                    listBox1.Items.Add(str);
+                }
             }
         }
-
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             try

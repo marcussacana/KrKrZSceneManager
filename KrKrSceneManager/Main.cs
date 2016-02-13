@@ -84,7 +84,7 @@ namespace KrKrSceneManager
             return Script;
         }
 
-        private byte[] genOffset(int size, int Value)
+        internal byte[] genOffset(int size, int Value)
         {
             string[] result = new string[0];
             for (int i = 0; i < size; i++)
@@ -121,7 +121,7 @@ namespace KrKrSceneManager
             }
             return Tools.StringToByteArray(result);
         }
-        private byte[] writeOffset(byte[] offsets, int position, int Value)
+        internal byte[] writeOffset(byte[] offsets, int position, int Value)
         {
             byte[] result = offsets;
             byte[] var = Tools.IntToByte(Value);
@@ -153,7 +153,7 @@ namespace KrKrSceneManager
             return result;
         }
 
-        private string getRange(byte[] file, int pos, int length)
+        internal string getRange(byte[] file, int pos, int length)
         {
             byte[] rest = new byte[length];
             for (int i = 0; i < length; i++)
@@ -275,7 +275,7 @@ namespace KrKrSceneManager
             return scn;
         }
 
-        private int elevate(int ValueToElevate, int ElevateTimes) {
+        internal int elevate(int ValueToElevate, int ElevateTimes) {
             if (ElevateTimes == 0)
                 return 0;
             int elevate = 1;
@@ -288,7 +288,7 @@ namespace KrKrSceneManager
             return value;
         }
 
-        private bool EqualsAt(byte[] OriginalData, byte[] DataToCompare, int PositionToStartCompare)
+        internal bool EqualsAt(byte[] OriginalData, byte[] DataToCompare, int PositionToStartCompare)
         {
             if (PositionToStartCompare + DataToCompare.Length > OriginalData.Length)
                 return false;
@@ -300,10 +300,10 @@ namespace KrKrSceneManager
             return true;
         }
 
-        private byte[] genOffsetTable(int[] offsets, int BRUTEFORCEBUFFER, int size)
+        internal byte[] genOffsetTable(int[] offsets, int Count, int size)
         {
-            byte[] table = new byte[size * BRUTEFORCEBUFFER];
-            for (int i = 0; i < BRUTEFORCEBUFFER; i++)
+            byte[] table = new byte[size * Count];
+            for (int i = 0; i < Count; i++)
             {
                 byte[] offset = genOffset(size, offsets[i]);
                 offset.CopyTo(table, i*size);
@@ -325,7 +325,7 @@ namespace KrKrSceneManager
             return Tools.U8HexToString(hex.Split('-')).Replace("\n", "\\n");
         }
 
-        private int GetOffset(byte[] file, int index, int OffsetSize, bool reverse)
+        internal int GetOffset(byte[] file, int index, int OffsetSize, bool reverse)
         {
             if (reverse)
             {
