@@ -1,7 +1,11 @@
-### KrKrZSM 2.0
+### KrKrZSM 3.0
 [![Build Status](https://travis-ci.org/ForumHulp/pageaddon.svg?branch=master)](http://katawa.url.ph)
 
-A tool to edit any kirikiriZ and KiriKiri2 unpacked or packed scn files, tested in the NekoPara vol.1, Nekopara vol.0 and First script from Dracu+Riot. This exe is only a sample project using my DLL.
+This Tool can read strings from KiriKiri PSB And MDF Container, Can Edit strings and Read The Packget Resources
+
+Pending:
+-Rewrite Resouce Table Offset after edit string
+-Rewrite Resouce File size Offset 
 
 This tool can extract tgls from pimg format, i have plans to write a insert tool.
 

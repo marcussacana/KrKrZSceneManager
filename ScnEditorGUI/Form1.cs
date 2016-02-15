@@ -16,29 +16,29 @@ namespace ScnEditorGUI
         {
             OpenFileDialog fd = new OpenFileDialog();
             fd.FileName = "";
-            fd.Filter = "All KiriKiri SCN Files | *.scn|Pack of Tlgs Files (Unstable) | *.pimg";
+            fd.Filter = "KiriKiri Compiled Files | *.scn; *.psb|Pack of Resources | *.pimg";
             DialogResult dr = fd.ShowDialog();
             if (dr == DialogResult.OK)
                 OpenFile(fd.FileName);
         }
-        //public SCENE SCN = new SCENE(); //Correct usage
-        public object SCN = new object(); //I use this for tests 
+        bool ResourceMode = false;
+        PSBResourceManager PRM = new PSBResourceManager();
+        public PSBStringManager SCN = new PSBStringManager();
         private void OpenFile(string fname)
         {
             if (fname.EndsWith(".pimg"))
             {
-                MessageBox.Show("WARNING - You are using a very unstable resource.", "Unstable Resource Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                PackImgFormat PIF = new PackImgFormat();
-                TlgFile[] Rst = PIF.Import(System.IO.File.ReadAllBytes(fname));
+                ResourceMode = true;
+                FileEntry[] Rst = PRM.Import(System.IO.File.ReadAllBytes(fname));
                 for (int i = 0; i < Rst.Length; i++)
                     System.IO.File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + i + "-pimg.tlg", Rst[i].Data);
-                MessageBox.Show("Tlgs save in the program directory...", "Unstable, But works ^^", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Tlgs Saved in the program Directory...", "Resouce Manager", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else {
+                ResourceMode = false;
                 listBox1.Items.Clear();
-                SCENE scn = (new SCENE()).import(System.IO.File.ReadAllBytes(fname));
-                SCN = scn;
-                foreach (string str in ((SCENE)SCN).Strings)
+                SCN.Import(System.IO.File.ReadAllBytes(fname));
+                foreach (string str in SCN.Strings)
                 {
                     listBox1.Items.Add(str);
                 }
@@ -55,25 +55,45 @@ namespace ScnEditorGUI
         }
         private void saveFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SaveFileDialog save = new SaveFileDialog();
-            save.FileName = "";
-            save.Filter = "All KiriKiri SCN Files | *.scn";
-            DialogResult dr = save.ShowDialog();
-            if (dr == DialogResult.OK)
+            if (ResourceMode)
             {
-                for (int i = 0; i < ((SCENE)SCN).Strings.Length; i++)
+                SaveFileDialog save = new SaveFileDialog();
+                save.FileName = "";
+                save.Filter = "Pack of Resources | *.pimg";
+                DialogResult dr = save.ShowDialog();
+                if (dr == DialogResult.OK)
                 {
-                    ((SCENE)SCN).Strings[i] = listBox1.Items[i].ToString();
+                    FileEntry[] Images = new FileEntry[PRM.EntryCount]; 
+                    for (int i = 0; i < Images.Length; i++)
+                    {
+                        Images[i] = new FileEntry();
+                        Images[i].Data = System.IO.File.ReadAllBytes(AppDomain.CurrentDomain.BaseDirectory + i + "-pimg.tlg");
+                    }
+                    byte[] result = PRM.Export(Images);
+                    System.IO.File.WriteAllBytes(save.FileName, result);
                 }
-                dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nDoes not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                ((SCENE)SCN).CompressScene = dr == DialogResult.Yes;
-                ((SCENE)SCN).CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
-                byte[] outfile = ((SCENE)SCN).export();
-                System.IO.File.WriteAllBytes(save.FileName, outfile);
-                MessageBox.Show("File Saved.");
+            }
+            else
+            {
+                SaveFileDialog save = new SaveFileDialog();
+                save.FileName = "";
+                save.Filter = "KiriKiri Compiled Files | *.scn; *.psb|Pack of Resources | *.pimg";
+                DialogResult dr = save.ShowDialog();
+                if (dr == DialogResult.OK)
+                {
+                    for (int i = 0; i < SCN.Strings.Length; i++)
+                    {
+                        SCN.Strings[i] = listBox1.Items[i].ToString();
+                    }
+                    dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nDoes not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    SCN.CompressPackget = dr == DialogResult.Yes;
+                    SCN.CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
+                    byte[] outfile = SCN.Export();
+                    System.IO.File.WriteAllBytes(save.FileName, outfile);
+                    MessageBox.Show("File Saved.");
+                }
             }
         }
-
         private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == '\r' || e.KeyChar == '\n')

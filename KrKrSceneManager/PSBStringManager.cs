@@ -4,24 +4,28 @@ using System.Text;
 
 namespace KrKrSceneManager
 {  
-    public class SCENE
+    public class PSBStringManager
     {
-        private bool blankstr;
         private int DefaultOffsetSize;
         private int StringTable;
         private int OffsetTable;
-        private bool havePosFix = false;
+        private int StrCount;
         private string Status = "Not Open";
         private byte[] Source = new byte[0];
-        private byte[] posfix = new byte[0];
+        private byte[] sufix = new byte[0];
         private int TablePrefixSize = 0;
-        public bool CompressScene = false;
+
+        //settings
+        public bool CompressPackget = false;
         public int CompressionLevel = 9;
         public string[] Strings = new string[0];
+        public bool ResizeOffsets = true;
 
-        public byte[] export()
+        public bool Initialized { get; private set; }
+
+        public byte[] Export()
         {
-            if (Source.Length == 0)
+            if (!Initialized)
                 throw new Exception("You need import a scene before export.");
             byte[] Script = new byte[OffsetTable + TablePrefixSize];
             for (int pos = 0; pos < Script.Length; pos++)
@@ -29,61 +33,69 @@ namespace KrKrSceneManager
                 Status = "Copying Script...";
                 Script[pos] = Source[pos];
             }
-            byte[] Offsets = new byte[StringTable - Script.Length];
+            int OffsetSize = DefaultOffsetSize;
+            if (ResizeOffsets)
+            {
+                Script[Script.Length - 1] = ConvertSize(4);
+                OffsetSize = 4;
+                writeOffset(Script, 0x14, OffsetTable + TablePrefixSize + (StrCount * OffsetSize), OffsetSize);
+            }
+
+            byte[] Offsets = new byte[StrCount * OffsetSize];
             byte[] strings = new byte[0];
             int diff = 0;
-            if (blankstr)//this make a more compact script. Yes, 1 byte less can make difference (because the limited offset size)
-            {
-                byte[] hex = Tools.U8StringToByte(Strings[0]);
-                byte[] tmp = new byte[strings.Length + hex.Length];
-                strings.CopyTo(tmp, 0);
-                hex.CopyTo(tmp, strings.Length);
-                strings = tmp;
-                Offsets = writeOffset(Offsets, 0 * DefaultOffsetSize, 0);
-                diff = 1;
-            }
+            byte[] tmp;
             for (int pos = diff; pos < Strings.Length; pos++)
             {
                 Status = "Compiling strings... (" + (pos * 100) / Strings.Length + "%)";
                 byte[] hex = Tools.U8StringToByte(Strings[pos]);
-                byte[] tmp = new byte[strings.Length + hex.Length + 1];
+                tmp = new byte[strings.Length + hex.Length + 1];
                 strings.CopyTo(tmp, 0);
                 tmp[strings.Length] = 0x00;
-                int offset = (strings.Length + 1);
-                hex.CopyTo(tmp, strings.Length + 1);
+                int offset = strings.Length;
+                hex.CopyTo(tmp, offset);
                 strings = tmp;
-                Offsets = writeOffset(Offsets, pos * DefaultOffsetSize, offset);
+                Offsets = writeOffset(Offsets, pos * OffsetSize, offset, OffsetSize);
             }
-            if (havePosFix)
+            Status = "Additing Others Resouces...";
+            tmp = new byte[strings.Length + sufix.Length];
+            strings.CopyTo(tmp, 0);
+            for (int i = strings.Length; (i - strings.Length) < sufix.Length; i++)
             {
-                Status = "Additing aditional content...";
-                byte[] tmp = new byte[strings.Length + posfix.Length];
-                strings.CopyTo(tmp, 0);
-                for (int i = strings.Length; (i - strings.Length) < posfix.Length; i++)
-                {
-                    tmp[i] = posfix[i - strings.Length];
-                }
-                strings = tmp;
+                tmp[i] = sufix[i - strings.Length];
             }
+            strings = tmp;
             Status = "Generating new scene...";
             byte[] temp = new byte[Script.Length + Offsets.Length + strings.Length];
             Script.CopyTo(temp, 0);
             Offsets.CopyTo(temp, Script.Length);
             strings.CopyTo(temp, Script.Length + Offsets.Length);
             Script = temp;
-            if (CompressScene)
-            {
-                byte[] CompressedScript;
-                Tools.CompressData(Script, CompressionLevel, out CompressedScript);
-                byte[] RetData = new byte[8 + CompressedScript.Length];
-                (new byte[] { 0x6D, 0x64, 0x66, 0x00 }).CopyTo(RetData, 0);
-                genOffset(4, Script.Length).CopyTo(RetData, 4);
-                CompressedScript.CopyTo(RetData, 8);
-                return RetData;
-            }
-            return Script;
+            /* Fix All Offsets - In Next Commit
+            int ResPos = GetOffset(Source, 0x1C, 4, false);
+            int RestCount = GetOffset(Source, ResPos + 1, ConvertSize(Source[ResPos]), false);
+            int ResOffSize = ConvertSize(Source[ResPos + 1 + ConvertSize(ResPos)]) * ResPos;
+
+            int DibPos = GetOffset(Source, 0x18, 4, false);
+            int DibOffT = ConvertSize(Source[DibPos]);
+            int DibCount = GetOffset(Source, DibPos + 1, DibOffT, false);
+            int DibSize = ConvertSize(Source[DibPos + 1 + DibOffT]) * DibCount;
+
+            int ResTablePos = DibSize + DibOffT + 1
+            */
+            return CompressPackget ? MakeMDF(Script) : Script;
         }
 
+        internal byte[] MakeMDF(byte[] psb) {
+            byte[] CompressedScript;
+            Tools.CompressData(psb, CompressionLevel, out CompressedScript);
+            byte[] RetData = new byte[8 + CompressedScript.Length];
+            (new byte[] { 0x6D, 0x64, 0x66, 0x00 }).CopyTo(RetData, 0);
+            genOffset(4, psb.Length).CopyTo(RetData, 4);
+            CompressedScript.CopyTo(RetData, 8);
+            return RetData;
+        }
+        #region res
         internal byte[] genOffset(int size, int Value)
         {
             string[] result = new string[0];
@@ -121,11 +133,11 @@ namespace KrKrSceneManager
             }
             return Tools.StringToByteArray(result);
         }
-        internal byte[] writeOffset(byte[] offsets, int position, int Value)
+        internal byte[] writeOffset(byte[] offsets, int position, int Value, int OffsetSize)
         {
             byte[] result = offsets;
             byte[] var = Tools.IntToByte(Value);
-            if (var.Length > DefaultOffsetSize)
+            if (var.Length > OffsetSize)
             {
                 throw new Exception("Edited Strings are too big.");
             }
@@ -138,7 +150,7 @@ namespace KrKrSceneManager
             }
             tmp = 0;
 
-            for (int i = position; i < (position + DefaultOffsetSize); i++)
+            for (int i = position; i < (position + OffsetSize); i++)
             {
                 if (tmp < hex.Length)
                 {
@@ -153,6 +165,51 @@ namespace KrKrSceneManager
             return result;
         }
 
+        private int GetOffsetSize(byte[] file)
+        {
+            int pos = GetOffset(file, 0x10, 4, false);
+            int FirstSize = ConvertSize(file[pos++]);
+            return ConvertSize(file[FirstSize+pos]);
+        }
+        private int GetStrCount(byte[] file)
+        {
+            int pos = GetOffset(file, 0x10, 4, false);
+            int Size = ConvertSize(file[pos++]);
+            return GetOffset(file, pos, Size, false);
+        }
+        private int GetPrefixSize(byte[] file)
+        {
+            return ConvertSize(file[GetOffset(file, 0x10, 4, false)])+2;
+        }
+        #endregion
+        internal byte ConvertSize(int s)
+        {
+            switch (s)
+            {
+                case 1:
+                    return 0xD;
+                case 2:
+                    return 0xE;
+                case 3:
+                    return 0xF;
+                case 4:
+                    return 0x10;                    
+            }
+            throw new Exception("Unknow Offset Size");
+        }
+        internal int ConvertSize(byte b) {
+            switch (b) {
+                case 0xD:
+                    return 1;
+                case 0xE:
+                    return 2;
+                case 0xF:
+                    return 3;
+                case 0x10:
+                    return 4;
+            }
+            throw new Exception("Unknow Offset Size");
+        }
         internal string getRange(byte[] file, int pos, int length)
         {
             byte[] rest = new byte[length];
@@ -162,117 +219,54 @@ namespace KrKrSceneManager
             }
             return Tools.ByteArrayToString(rest).Replace("-", "");
         }
-        public SCENE import(byte[] Bin)
-        {
-            byte[] scene = new byte[0];
-            SCENE scn = new SCENE();
-            scene = Bin;
-            if (getRange(scene, 0, 4) == "6D646600")
-            {
-                object tmp = new byte[scene.Length - 8];
-                for (int i = 8; i < scene.Length; i++)
-                    ((byte[])tmp)[i - 8] = scene[i];
-                byte[] DecompressedScene;
-                Tools.DecompressData((byte[])tmp, out DecompressedScene);
-                if (GetOffset(scene, 4, 4, false) != DecompressedScene.Length)
-                    throw new Exception("Corrupted MDF Header or Zlib Data");
-                scene = DecompressedScene;
-            }
-            if (getRange(scene, 0, 3) != "505342")
+        internal byte[] GetMDF(byte[] mdf) {
+            object tmp = new byte[mdf.Length - 8];
+            for (int i = 8; i < mdf.Length; i++)
+                ((byte[])tmp)[i - 8] = mdf[i];
+            byte[] DecompressedMDF;
+            Tools.DecompressData((byte[])tmp, out DecompressedMDF);
+            if (GetOffset(mdf, 4, 4, false) != DecompressedMDF.Length)
+                throw new Exception("Corrupted MDF Header or Zlib Data");
+            return DecompressedMDF;
+        }
+        public string[] Import(byte[] Packget)
+        {            
+            if (getRange(Packget, 0, 4) == "6D646600")
+                Packget = GetMDF(Packget);
+            if (getRange(Packget, 0, 3) != "505342")
                 throw new Exception("Invalid KrKrZ Scene binary");
-            scn.Source = scene;
+            Source = Packget;
             Status = "Reading Header...";
-            int OffsetTablePos = GetOffset(scene, 16, 4, false);
-            int StringTablePos = GetOffset(scene, 20, 4, false);
-            scn.OffsetTable = OffsetTablePos;
-            scn.StringTable = StringTablePos;
-            int DefaultOffsetSize = 0;
-            Status = "Getting Offsets Size...";
-            int BRUTEFORCEBUFFER = 4;//Start of the best way to detect offset size and position
-            int minimalsize = 0;
-            while (scene.Length - StringTablePos > elevate(0xFF, minimalsize)) //calculate the minimal size to strings offset by file size
-                minimalsize++;
-            int[] offsets = new int[0];
-            if (scene[StringTablePos] != 0x00)//to detect scripts without blank strings (01_05_c.ks.scn from nekopara for sample)
+            OffsetTable = GetOffset(Packget, 16, 4, false);
+            StringTable = GetOffset(Packget, 20, 4, false);
+            DefaultOffsetSize = GetOffsetSize(Packget);
+            TablePrefixSize = GetPrefixSize(Packget);
+            StrCount = GetStrCount(Packget);
+            Strings = new string[StrCount];
+            for (int str = -1, pos = OffsetTable + TablePrefixSize; pos < StringTable; pos += DefaultOffsetSize)
             {
-                blankstr = true;
-                int[] tmp = new int[offsets.Length + 1];
-                offsets.CopyTo(tmp, 0);
-                tmp[offsets.Length] = 0;
-                offsets = tmp;
-            }
-            for (int pos = 0; pos + StringTablePos < scene.Length; pos++) //generate string position tree
-                if (scene[StringTablePos + pos] == 0x00)
-                {
-                    int[] tmp = new int[offsets.Length + 1];
-                    offsets.CopyTo(tmp, 0);
-                    tmp[offsets.Length] = pos + 1;
-                    offsets = tmp;
-                }
-            if (offsets.Length <= BRUTEFORCEBUFFER)
-                BRUTEFORCEBUFFER = offsets.Length - 1;
-            for (int size = minimalsize; ; size++)//find offsets position with diff offset size
-            {
-                bool okay = false;
-                byte[] OffTable = genOffsetTable(offsets, BRUTEFORCEBUFFER, size);//generate table with specifed offset size
-                for (int i = 0; i < size * BRUTEFORCEBUFFER; i++)//find offset table in (size * BRUTEFORCEBUFFER) range
-                    if (EqualsAt(scene, OffTable, OffsetTablePos + i))
-                    {
-                        TablePrefixSize = i;
-                        DefaultOffsetSize = size;
-                        okay = true;
-                        break;
-                    }
-                if (okay)
-                    break;
-            }
-
-            scn.DefaultOffsetSize = DefaultOffsetSize;
-            scn.TablePrefixSize = TablePrefixSize;
-            scn.blankstr = blankstr;
-            string[] strs = new string[0];
-            for (int pos = OffsetTablePos + TablePrefixSize; pos < StringTablePos; pos += DefaultOffsetSize)
-            {
-                Status = "Importing Strings... (" + (pos * 100) / StringTablePos + "%)";
-                string[] temp = new string[strs.Length + 1];
-                strs.CopyTo(temp, 0);
-                int index = GetOffset(scene, pos, DefaultOffsetSize, false) + StringTablePos;
-                if (scene[index] == 0x00)
-                {
-                    temp[strs.Length] = string.Empty;
-                    strs = temp;
-                }
+                str++;
+                Status = "Importing Strings... (" + (str * 100) / StrCount + "%)";
+                int index = GetOffset(Packget, pos, DefaultOffsetSize, false) + StringTable;
+                if (Packget[index] == 0x00)
+                    Strings[str] = string.Empty;
                 else
-                {
-                    temp[strs.Length] = GetString(scene, index);
-                    strs = temp;
-                }
-                if (pos + DefaultOffsetSize >= StringTablePos)
-                {
-                    int EndLast = -1;
-                    for (int i = GetOffset(scene, pos, DefaultOffsetSize, false) + StringTablePos; scene[i] != 0x00 && i < scene.Length; i++)
+                    Strings[str] = GetString(Packget, index);
+
+                if (pos + DefaultOffsetSize >= StringTable) //if the for loop ends now
+                {//get end of file
+                    int Size = Encoding.UTF8.GetBytes(Strings[str]).Length+1;
+                    if (index + Size <= Packget.Length)
                     {
-                        EndLast = i;
-                        if (i + 1 > scene.Length)
-                            break;
-                    }
-                    if (EndLast != -1)
-                    {
-                        EndLast++;
-                        scn.havePosFix = true;
-                        for (int i = EndLast; i < scene.Length; i++)
-                        {
-                            byte[] tmp = new byte[scn.posfix.Length + 1];
-                            scn.posfix.CopyTo(tmp, 0);
-                            tmp[scn.posfix.Length] = scene[i];
-                            scn.posfix = tmp;
-                        }
+                        sufix = new byte[Packget.Length - (index+Size)];
+                        for (int i = index + Size, b = 0; i < Packget.Length; i++, b++)
+                            sufix[b] = Packget[i];
                     }
                 }
             }
-            scn.Strings = strs;
             Status = "Imported";
-            return scn;
+            Initialized = true;
+            return Strings;
         }
 
         internal int elevate(int ValueToElevate, int ElevateTimes) {
