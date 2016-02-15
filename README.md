@@ -5,10 +5,8 @@ This Tool can read strings from KiriKiri PSB And MDF Container, Can Edit strings
 
 Pending:
 
--Rewrite Resouce Table Offset after edit string
-
--Rewrite Resouce File size Offset 
-
+ - Rewrite Resouce Table Offset after edit string
+ - Rewrite Resouce File size Offset
 
 This tool can extract tgls from pimg format, i have plans to write a insert tool.
 
