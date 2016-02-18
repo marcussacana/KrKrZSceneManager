@@ -31,8 +31,8 @@ namespace ScnEditorGUI
                 ResourceMode = true;
                 FileEntry[] Rst = PRM.Import(System.IO.File.ReadAllBytes(fname));
                 for (int i = 0; i < Rst.Length; i++)
-                    System.IO.File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + i + "-pimg.tlg", Rst[i].Data);
-                MessageBox.Show("Tlgs Saved in the program Directory...", "Resouce Manager", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    System.IO.File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + i + ".res", Rst[i].Data);
+                MessageBox.Show("Resources Extracted in the Program Directory...", "Resource Manager", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else {
                 ResourceMode = false;
@@ -67,7 +67,7 @@ namespace ScnEditorGUI
                     for (int i = 0; i < Images.Length; i++)
                     {
                         Images[i] = new FileEntry();
-                        Images[i].Data = System.IO.File.ReadAllBytes(AppDomain.CurrentDomain.BaseDirectory + i + "-pimg.tlg");
+                        Images[i].Data = System.IO.File.ReadAllBytes(AppDomain.CurrentDomain.BaseDirectory + i + ".res");
                     }
                     byte[] result = PRM.Export(Images);
                     System.IO.File.WriteAllBytes(save.FileName, result);
@@ -90,9 +90,10 @@ namespace ScnEditorGUI
                     SCN.CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
                     byte[] outfile = SCN.Export();
                     System.IO.File.WriteAllBytes(save.FileName, outfile);
-                    MessageBox.Show("File Saved.");
+                    
                 }
             }
+            MessageBox.Show("File Saved.");
         }
         private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
         {

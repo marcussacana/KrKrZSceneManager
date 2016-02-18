@@ -19,7 +19,7 @@ namespace KrKrSceneManager
         public bool CompressPackget = false;
         public int CompressionLevel = 9;
         public string[] Strings = new string[0];
-        public bool ResizeOffsets = true;
+        public bool ResizeOffsets = false;
 
         public bool Initialized { get; private set; }
 
@@ -57,7 +57,7 @@ namespace KrKrSceneManager
                 strings = tmp;
                 Offsets = writeOffset(Offsets, pos * OffsetSize, offset, OffsetSize);
             }
-            Status = "Additing Others Resouces...";
+            Status = "Additing Others Resources...";
             tmp = new byte[strings.Length + sufix.Length];
             strings.CopyTo(tmp, 0);
             for (int i = strings.Length; (i - strings.Length) < sufix.Length; i++)
@@ -71,21 +71,28 @@ namespace KrKrSceneManager
             Offsets.CopyTo(temp, Script.Length);
             strings.CopyTo(temp, Script.Length + Offsets.Length);
             Script = temp;
-            /* Fix All Offsets - In Next Commit
-            int ResPos = GetOffset(Source, 0x1C, 4, false);
-            int RestCount = GetOffset(Source, ResPos + 1, ConvertSize(Source[ResPos]), false);
-            int ResOffSize = ConvertSize(Source[ResPos + 1 + ConvertSize(ResPos)]) * ResPos;
 
-            int DibPos = GetOffset(Source, 0x18, 4, false);
-            int DibOffT = ConvertSize(Source[DibPos]);
-            int DibCount = GetOffset(Source, DibPos + 1, DibOffT, false);
-            int DibSize = ConvertSize(Source[DibPos + 1 + DibOffT]) * DibCount;
-
-            int ResTablePos = DibSize + DibOffT + 1
-            */
+            //offsets fix
+            int StartPos = GetOffset(Source, 0x20, 4, false),
+            ResOffPos = GetOffset(Source, 0x18, 4, false),
+            ResSizePos = GetOffset(Source, 0x1C, 4, false);
+            int Diff = Script.Length - Source.Length;
+            if (StartPos > StringTable)//If is after string table...
+                Script = OverWrite(Script, genOffset(4, StartPos + Diff), 0x20);//Update the Difference
+            if (ResOffPos > StringTable)
+                Script = OverWrite(Script, genOffset(4, ResOffPos + Diff), 0x18);
+            if (ResSizePos > StringTable)
+                Script = OverWrite(Script, genOffset(4, ResSizePos + Diff), 0x1C);
             return CompressPackget ? MakeMDF(Script) : Script;
         }
-
+        internal byte[] OverWrite(byte[] Main, byte[] NewData, int Postion)
+        {
+            for (int i = 0; i < NewData.Length; i++)
+            {
+                Main[Postion + i] = NewData[i];
+            }
+            return Main;
+        }
         internal byte[] MakeMDF(byte[] psb) {
             byte[] CompressedScript;
             Tools.CompressData(psb, CompressionLevel, out CompressedScript);
