@@ -34,6 +34,9 @@
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.openFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.huffmanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.decompressImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.compressImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -63,9 +66,10 @@
             // 
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openFileToolStripMenuItem,
-            this.saveFileToolStripMenuItem});
+            this.saveFileToolStripMenuItem,
+            this.huffmanToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(132, 48);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(153, 92);
             // 
             // openFileToolStripMenuItem
             // 
@@ -80,6 +84,29 @@
             this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.saveFileToolStripMenuItem.Text = "Save File";
             this.saveFileToolStripMenuItem.Click += new System.EventHandler(this.saveFileToolStripMenuItem_Click);
+            // 
+            // huffmanToolStripMenuItem
+            // 
+            this.huffmanToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.decompressImageToolStripMenuItem,
+            this.compressImageToolStripMenuItem});
+            this.huffmanToolStripMenuItem.Name = "huffmanToolStripMenuItem";
+            this.huffmanToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.huffmanToolStripMenuItem.Text = "Huffman";
+            // 
+            // decompressImageToolStripMenuItem
+            // 
+            this.decompressImageToolStripMenuItem.Name = "decompressImageToolStripMenuItem";
+            this.decompressImageToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
+            this.decompressImageToolStripMenuItem.Text = "Decompress Image";
+            this.decompressImageToolStripMenuItem.Click += new System.EventHandler(this.decompressImageToolStripMenuItem_Click);
+            // 
+            // compressImageToolStripMenuItem
+            // 
+            this.compressImageToolStripMenuItem.Name = "compressImageToolStripMenuItem";
+            this.compressImageToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
+            this.compressImageToolStripMenuItem.Text = "Compress Image";
+            this.compressImageToolStripMenuItem.Click += new System.EventHandler(this.compressImageToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -104,6 +131,9 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ToolStripMenuItem openFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveFileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem huffmanToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem decompressImageToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem compressImageToolStripMenuItem;
     }
 }
 
