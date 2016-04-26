@@ -4,7 +4,7 @@ using System.Text;
 
 
 /*
- * KrKrSceneManager (4.0) By Marcussacana
+ * KrKrSceneManager (4.2) By Marcussacana
  * Usage:
  * PSBStringManager StrMan = new PSBStringManager();
  * byte[] input = File.ReadAllBytes("C:\\sample.bin");
@@ -48,7 +48,7 @@ namespace KrKrSceneManager {
             if (ResizeOffsets) {
                 Script[Script.Length - 1] = ConvertSize(4);
                 OffsetSize = 4;
-                writeOffset(Script, 0x14, OffsetTable + TablePrefixSize + (StrCount * OffsetSize), OffsetSize);
+                Script = writeOffset(ref Script, 0x14, OffsetTable + TablePrefixSize + (StrCount * OffsetSize), OffsetSize);
             }
 
             byte[] Offsets = new byte[StrCount * OffsetSize];
@@ -64,7 +64,7 @@ namespace KrKrSceneManager {
                 int offset = strings.Length;
                 hex.CopyTo(tmp, offset);
                 strings = tmp;
-                Offsets = writeOffset(Offsets, pos * OffsetSize, offset, OffsetSize);
+                Offsets = writeOffset(ref Offsets, pos * OffsetSize, offset, OffsetSize);
             }
             Status = "Additing Others Resources...";
             tmp = new byte[strings.Length + sufix.Length];
@@ -111,59 +111,22 @@ namespace KrKrSceneManager {
 
         #region res
         internal byte[] genOffset(int size, int Value) {
-            string[] result = new string[0];
-            for (int i = 0; i < size; i++) {
-                string[] temp = new string[result.Length + 1];
-                result.CopyTo(temp, 0);
-                temp[result.Length] = "00";
-                result = temp;
-            }
-            string var = Tools.IntToHex(Value);
-            if (var.Length % 2 != 0) {
-                var = 0 + var;
-            }
-            string[] hex = new string[var.Length / 2];
-            int tmp = 0;
-            for (int i = var.Length - 2; i > -2; i -= 2) {
-                hex[tmp] = var.Substring(i, 2);
-                tmp++;
-            }
-            tmp = 0;
-            for (int i = 0; i < size; i++) {
-                if (tmp < hex.Length) {
-                    result[i] = hex[tmp];
-                }
-                else {
-                    result[i] = "00";
-                }
-                tmp++;
-            }
-            return Tools.StringToByteArray(result);
-        }
-        internal byte[] writeOffset(byte[] offsets, int position, int Value, int OffsetSize) {
-            byte[] result = offsets;
-            byte[] var = Tools.IntToByte(Value);
-            if (var.Length > OffsetSize) {
+            byte[] Off = BitConverter.GetBytes(Value);
+            if (!BitConverter.IsLittleEndian)
+                Array.Reverse(Off);
+            if (Off.Length > size)
                 throw new Exception("Edited Strings are too big.");
-            }
-            byte[] hex = new byte[var.Length];
-            int tmp = 0;
-            for (int i = var.Length - 1; i >= 0; i--) {
-                hex[tmp] = var[i];
-                tmp++;
-            }
-            tmp = 0;
-
-            for (int i = position; i < (position + OffsetSize); i++) {
-                if (tmp < hex.Length) {
-                    result[i] = hex[tmp];
-                }
-                else {
-                    result[i] = 0x00;
-                }
-                tmp++;
-            }
-            return result;
+            if (Off.Length < size) {
+                byte[] rst = new byte[size];
+                Off.CopyTo(rst, 0);
+                Off = rst;
+            } 
+            return Off;
+        }
+        internal byte[] writeOffset(ref byte[] offsets, int position, int Value, int OffsetSize) {
+            byte[] Offset = genOffset(OffsetSize, Value);
+            Offset.CopyTo(offsets, position);
+            return offsets;
         }
 
         private int GetOffsetSize(byte[] file) {
@@ -208,11 +171,14 @@ namespace KrKrSceneManager {
             throw new Exception("Unknow Offset Size");
         }
         internal string getRange(byte[] file, int pos, int length) {
-            byte[] rest = new byte[length];
+            string rst = string.Empty;
             for (int i = 0; i < length; i++) {
-                rest[i] = file[pos + i];
+                string hex = file[pos + i].ToString("x").ToUpper();
+                if (hex.Length == 1)
+                    hex = "0" + hex;
+                rst += hex;
             }
-            return Tools.ByteArrayToString(rest).Replace("-", "");
+            return rst;
         }
         internal byte[] GetMDF(byte[] mdf) {
             object tmp = new byte[mdf.Length - 8];
@@ -265,23 +231,24 @@ namespace KrKrSceneManager {
         }
 
         private string GetString(byte[] scene, int pos) {
-            string hex = "";
+            MemoryStream arr = new MemoryStream();
             for (int i = pos; scene[i] != 0x00 && i + 1 < scene.Length; i++)
-                hex += scene[i].ToString("x").ToUpper() + "-";
-            hex = hex.Substring(0, hex.Length - 1);
-            return Tools.U8HexToString(hex.Split('-')).Replace("\n", "\\n");
+                arr.Write(new byte[] { scene[i] }, 0, 1);
+            arr.Seek(0, SeekOrigin.Begin);
+            byte[] rst = new byte[arr.Length];
+            arr.Read(rst, 0, (int)arr.Length);
+            arr.Close();
+            return Encoding.UTF8.GetString(rst).Replace("\n", "\\n");
         }
 
         internal int GetOffset(byte[] file, int index, int OffsetSize) {
-            string hex = "";
-            for (int i = (index + OffsetSize - 1); i > (index - 1); i--) {
-                string var = file[i].ToString("x").ToUpper();
-                if (var.Length % 2 != 0) {
-                    var = 0 + var;
-                }
-                hex += var;
+            byte[] value = new byte[4];
+            for (int i = 0; i < OffsetSize; i++) {
+                value[i] = file[i + index];
             }
-            return Tools.HexToInt(hex);
+            if (!BitConverter.IsLittleEndian)
+                Array.Reverse(value, 0, 4);
+            return BitConverter.ToInt32(value, 0);
         }
     }
     internal class Tools {
@@ -315,57 +282,16 @@ namespace KrKrSceneManager {
                 outData = new byte[0];
             }
         }
-
-        public static string IntToHex(int val) {
-            return val.ToString("X");
-        }
-        public static byte[] IntToByte(int val) {
-            string var = IntToHex(val);
-            if (var.Length % 2 != 0) {
-                var = 0 + var;
-            }
-            return StringToByteArray(var);
-        }        
-        public static string U8HexToString(string[] hex) {
-            byte[] str = StringToByteArray(hex);
-            UTF8Encoding encoder = new UTF8Encoding();
-            return encoder.GetString(str);
-        }
-
+        
         public static byte[] U8StringToByte(string text) {
             UTF8Encoding encoder = new UTF8Encoding();
             return encoder.GetBytes(text.ToCharArray());
         }
-
-        public static byte[] StringToByteArray(string hex) {
-            try {
-                int NumberChars = hex.Length;
-                byte[] bytes = new byte[NumberChars / 2];
-                for (int i = 0; i < NumberChars; i += 2)
-                    bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-                return bytes;
-            }
-            catch { Console.Write("Invalid format file!"); return new byte[0]; }
-        }
-        public static byte[] StringToByteArray(string[] hex) {
-            try {
-                int NumberChars = hex.Length;
-                byte[] bytes = new byte[NumberChars];
-                for (int i = 0; i < NumberChars; i++)
-                    bytes[i] = Convert.ToByte(hex[i], 16);
-                return bytes;
-            }
-            catch { Console.Write("Invalid format file!"); return new byte[0]; }
-        }
+        
         public static string ByteArrayToString(byte[] ba) {
             string hex = BitConverter.ToString(ba);
             return hex;
         }
-
-        public static int HexToInt(string hex) {
-            int num = Int32.Parse(hex, System.Globalization.NumberStyles.HexNumber);
-            return num;
-        }
-        
+                
     }
 }

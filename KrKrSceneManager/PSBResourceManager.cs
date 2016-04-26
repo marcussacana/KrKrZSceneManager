@@ -226,11 +226,14 @@ namespace KrKrSceneManager
         }
 
         private static string getRange(byte[] file, int pos, int length) {
-            byte[] rest = new byte[length];
+            string rst = string.Empty;
             for (int i = 0; i < length; i++) {
-                rest[i] = file[pos + i];
+                string hex = file[pos + i].ToString("x").ToUpper();
+                if (hex.Length == 1)
+                    hex = "0" + hex;
+                rst += hex;
             }
-            return Tools.ByteArrayToString(rest).Replace("-", "");
+            return rst;
         }
 
         private static byte[] SubArray(byte[] data, int Pos, int length) {
