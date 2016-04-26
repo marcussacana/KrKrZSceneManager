@@ -57,7 +57,7 @@ namespace KrKrSceneManager {
             byte[] tmp;
             for (int pos = diff; pos < Strings.Length; pos++) {
                 Status = "Compiling strings... (" + (pos * 100) / Strings.Length + "%)";
-                byte[] hex = Tools.U8StringToByte(Strings[pos]);
+                byte[] hex = Encoding.UTF8.GetBytes(Strings[pos]);
                 tmp = new byte[strings.Length + hex.Length + 1];
                 strings.CopyTo(tmp, 0);
                 tmp[strings.Length] = 0x00;
@@ -282,16 +282,6 @@ namespace KrKrSceneManager {
                 outData = new byte[0];
             }
         }
-        
-        public static byte[] U8StringToByte(string text) {
-            UTF8Encoding encoder = new UTF8Encoding();
-            return encoder.GetBytes(text.ToCharArray());
-        }
-        
-        public static string ByteArrayToString(byte[] ba) {
-            string hex = BitConverter.ToString(ba);
-            return hex;
-        }
-                
+                        
     }
 }
