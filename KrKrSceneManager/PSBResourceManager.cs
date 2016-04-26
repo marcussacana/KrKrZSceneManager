@@ -153,6 +153,11 @@ namespace KrKrSceneManager
                     cnt[i - 0x36] = data[i];
                 data = cnt;
             }
+            if (data.Length %4 > 0) {
+                byte[] nw = new byte[data.Length + (data.Length % 4)];
+                data.CopyTo(nw, 0);
+                data = nw;
+            }
             System.IO.MemoryStream stream = new System.IO.MemoryStream();
             int MaxInt = 0x7F;
             int MinVal = 3;
