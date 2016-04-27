@@ -110,10 +110,21 @@ namespace KrKrSceneManager {
         }
 
         #region res
+        private byte[] shortdword(byte[] off) {
+            int length = off.Length-1;
+            while (off[length] == 0x0 && length > 0)
+                length--;
+            byte[] rst = new byte[length+1];
+            for (int i = 0; i < rst.Length; i++) {
+                rst[i] = off[i];
+            }
+            return rst;
+        }
         internal byte[] genOffset(int size, int Value) {
             byte[] Off = BitConverter.GetBytes(Value);
             if (!BitConverter.IsLittleEndian)
                 Array.Reverse(Off);
+            Off = shortdword(Off);
             if (Off.Length > size)
                 throw new Exception("Edited Strings are too big.");
             if (Off.Length < size) {
@@ -190,6 +201,13 @@ namespace KrKrSceneManager {
                 throw new Exception("Corrupted MDF Header or Zlib Data");
             return DecompressedMDF;
         }
+        public bool IsValidPackget(byte[] Packget) {
+            if (getRange(Packget, 0, 4) == "6D646600")
+                return true;
+            if (getRange(Packget, 0, 3) == "505342")
+                return true;
+            return false;
+        }
         public void Import(byte[] Packget) {
             if (getRange(Packget, 0, 4) == "6D646600")
                 Packget = GetMDF(Packget);
@@ -238,7 +256,7 @@ namespace KrKrSceneManager {
             byte[] rst = new byte[arr.Length];
             arr.Read(rst, 0, (int)arr.Length);
             arr.Close();
-            return Encoding.UTF8.GetString(rst).Replace("\n", "\\n");
+            return Encoding.UTF8.GetString(rst);
         }
 
         internal int GetOffset(byte[] file, int index, int OffsetSize) {
