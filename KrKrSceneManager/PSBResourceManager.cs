@@ -238,7 +238,7 @@ namespace KrKrSceneManager
 
         private static byte[] SubArray(byte[] data, int Pos, int length) {
             byte[] rst = new byte[length];
-            for (int i = 0; i < length && i + Pos < data.Length; i++)
+            for (int i = 0; i < length; i++)
                 rst[i] = data[i + Pos];
             return rst;
         }
