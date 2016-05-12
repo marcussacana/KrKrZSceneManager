@@ -4,7 +4,7 @@ using System.Text;
 
 
 /*
- * KrKrSceneManager (4.2) By Marcussacana
+ * KrKrSceneManager (4.5) By Marcussacana
  * Usage:
  * PSBStringManager StrMan = new PSBStringManager();
  * byte[] input = File.ReadAllBytes("C:\\sample.bin");
@@ -99,6 +99,47 @@ namespace KrKrSceneManager {
             }
             return Main;
         }
+        public byte[] TryRecovery(byte[] data) {
+            if (!IsValidPackget(data))
+                throw new Exception("Invalid Packget");
+            bool mdf = getRange(data, 0, 3) == "6D6466";
+            if (mdf)
+                data = GetMDF(data);
+            int StrOff = GetOffset(data, 0x10, 4);
+            int StrData = GetOffset(data, 0x14, 4);
+            int CntSize = ConvertSize(data[StrOff]);
+            int Count = GetOffset(data, StrOff + 1, CntSize);
+            int Size = ConvertSize(data[StrOff + 1 + CntSize]);
+            int EndStr = (StrOff + 2 + CntSize) + ((Count - 1) * Size);
+            EndStr = GetOffset(data, EndStr, Size) + StrData;
+            while (data[EndStr] != 0x00)
+                EndStr++;
+            byte[] seq = new byte[] { 0xD, 0x0, 0xD };
+            if (EqualsAt(data, seq, EndStr + 1) && EqualsAt(data, seq, EndStr + 1 + seq.Length)) {
+                data = OverWrite(data, genOffset(4, EndStr + 1), 0x18);
+                data = OverWrite(data, genOffset(4, EndStr + 4), 0x1C);//+3
+                data = OverWrite(data, genOffset(4, EndStr + 7), 0x20);//+6
+                return mdf ? MakeMDF(data) : data;
+            } else {
+                try {
+                    int tmp = ConvertSize(data[GetOffset(data, 0x18, 4)]);
+                    tmp = ConvertSize(data[GetOffset(data, 0x1C, 4)]);
+                    return mdf ? MakeMDF(data) : data; //Looks all Rigth
+                }
+                catch {
+                    throw new Exception("You Can't Recovery because this packget contains data.");
+                }
+            }
+        }
+
+        private bool EqualsAt(byte[] data, byte[] CompareData, int pos) {
+            if (CompareData.Length + pos > data.Length)
+                return false;
+            for (int i = 0; i < CompareData.Length; i++)
+                if (data[i + pos] != CompareData[i])
+                    return false;
+            return true;
+        }
         internal byte[] MakeMDF(byte[] psb) {
             byte[] CompressedScript;
             Tools.CompressData(psb, CompressionLevel, out CompressedScript);
@@ -111,10 +152,10 @@ namespace KrKrSceneManager {
 
         #region res
         private byte[] shortdword(byte[] off) {
-            int length = off.Length-1;
+            int length = off.Length - 1;
             while (off[length] == 0x0 && length > 0)
                 length--;
-            byte[] rst = new byte[length+1];
+            byte[] rst = new byte[length + 1];
             for (int i = 0; i < rst.Length; i++) {
                 rst[i] = off[i];
             }
@@ -131,7 +172,7 @@ namespace KrKrSceneManager {
                 byte[] rst = new byte[size];
                 Off.CopyTo(rst, 0);
                 Off = rst;
-            } 
+            }
             return Off;
         }
         internal byte[] writeOffset(ref byte[] offsets, int position, int Value, int OffsetSize) {
@@ -243,7 +284,7 @@ namespace KrKrSceneManager {
             Status = "Imported";
             Initialized = true;
         }
-        
+
         public string GetStatus() {
             return Status;
         }
@@ -300,6 +341,7 @@ namespace KrKrSceneManager {
                 outData = new byte[0];
             }
         }
-                        
+
     }
 }
+
