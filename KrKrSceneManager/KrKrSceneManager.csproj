@@ -39,8 +39,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PSBStringManager.cs" />
+    <Compile Include="Algorithms.cs" />
     <Compile Include="PSBResourceManager.cs" />
+    <Compile Include="PSBStringManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Zlib\Adler32.cs" />
     <Compile Include="Zlib\Deflate.cs" />

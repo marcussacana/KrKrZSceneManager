@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-
+using System.Linq;
 
 /*
- * KrKrSceneManager (4.5) By Marcussacana
+ * KrKrSceneManager (4.7) By Marcussacana
  * Usage:
  * PSBStringManager StrMan = new PSBStringManager();
  * byte[] input = File.ReadAllBytes("C:\\sample.bin");
@@ -19,14 +19,17 @@ using System.Text;
 
 namespace KrKrSceneManager {
     public class PSBStringManager {
-        private int DefaultOffsetSize;
+        private int OffsetLength;
         private int StringTable;
         private int OffsetTable;
         private int StrCount;
-        private string Status = "Not Open";
         private byte[] Source = new byte[0];
-        private byte[] sufix = new byte[0];
-        private int TablePrefixSize = 0;
+        private byte[] Sufix = new byte[0];
+
+        /// <summary>
+        /// Table Header Length
+        /// </summary>
+        private int TblHrdLen = 0;
 
         //settings
         public bool CompressPackget = false;
@@ -39,72 +42,66 @@ namespace KrKrSceneManager {
         public byte[] Export() {
             if (!Initialized)
                 throw new Exception("You need import a scene before export.");
-            byte[] Script = new byte[OffsetTable + TablePrefixSize];
-            for (int pos = 0; pos < Script.Length; pos++) {
-                Status = "Copying Script...";
-                Script[pos] = Source[pos];
-            }
-            int OffsetSize = DefaultOffsetSize;
+
+            //Copy Script Backup;
+            byte[] Script = new byte[OffsetTable + TblHrdLen];
+            Array.Copy(Source, 0, Script, 0, Script.Length);
+
+            //Get offset size or update if needed
+            int OffsetSize = OffsetLength;
             if (ResizeOffsets) {
                 Script[Script.Length - 1] = ConvertSize(4);
                 OffsetSize = 4;
-                Script = writeOffset(ref Script, 0x14, OffsetTable + TablePrefixSize + (StrCount * OffsetSize), OffsetSize);
+                genOffset(OffsetSize, OffsetTable + TblHrdLen + (StrCount * OffsetSize)).CopyTo(Script, 0x14);
             }
 
+
+            //Generate String and Offset Table
             byte[] Offsets = new byte[StrCount * OffsetSize];
-            byte[] strings = new byte[0];
-            int diff = 0;
-            byte[] tmp;
-            for (int pos = diff; pos < Strings.Length; pos++) {
-                Status = "Compiling strings... (" + (pos * 100) / Strings.Length + "%)";
-                byte[] hex = Encoding.UTF8.GetBytes(Strings[pos]);
-                tmp = new byte[strings.Length + hex.Length + 1];
-                strings.CopyTo(tmp, 0);
-                tmp[strings.Length] = 0x00;
-                int offset = strings.Length;
-                hex.CopyTo(tmp, offset);
-                strings = tmp;
-                Offsets = writeOffset(ref Offsets, pos * OffsetSize, offset, OffsetSize);
-            }
-            Status = "Additing Others Resources...";
-            tmp = new byte[strings.Length + sufix.Length];
-            strings.CopyTo(tmp, 0);
-            for (int i = strings.Length; (i - strings.Length) < sufix.Length; i++) {
-                tmp[i] = sufix[i - strings.Length];
-            }
-            strings = tmp;
-            Status = "Generating new scene...";
-            byte[] temp = new byte[Script.Length + Offsets.Length + strings.Length];
-            Script.CopyTo(temp, 0);
-            Offsets.CopyTo(temp, Script.Length);
-            strings.CopyTo(temp, Script.Length + Offsets.Length);
-            Script = temp;
+            MemoryStream Buffer = new MemoryStream();
+            for (int pos = 0; pos < Strings.Length; pos++) {
+                genOffset(OffsetSize, (int)Buffer.Length).CopyTo(Offsets, pos * OffsetSize);//Write Offset
 
-            //offsets fix
+                //Append String
+                byte[] str = Encoding.UTF8.GetBytes(Strings[pos] + "\x0");
+                Buffer.Write(str, 0, str.Length);
+            }
+            byte[] strings = Buffer.ToArray();
+            Buffer.Close();
+
+            //Merge all data
+            System.Collections.Generic.IEnumerable<byte> OutScript = Script;
+            OutScript = OutScript.Concat(Offsets);
+            OutScript = OutScript.Concat(strings);
+            OutScript = OutScript.Concat(Sufix);
+            Script = OutScript.ToArray();
+            OutScript = new byte[0]; //Free Memory
+
+            //Update Offsets
             int StartPos = GetOffset(Source, 0x20, 4),
             ResOffPos = GetOffset(Source, 0x18, 4),
             ResSizePos = GetOffset(Source, 0x1C, 4);
             int Diff = Script.Length - Source.Length;
+
             if (StartPos > StringTable)//If is after string table...
-                Script = OverWrite(Script, genOffset(4, StartPos + Diff), 0x20);//Update the Difference
+                genOffset(4, StartPos + Diff).CopyTo(Script, 0x20);//Update the Difference
             if (ResOffPos > StringTable)
-                Script = OverWrite(Script, genOffset(4, ResOffPos + Diff), 0x18);
+                genOffset(4, ResOffPos + Diff).CopyTo(Script, 0x18);
             if (ResSizePos > StringTable)
-                Script = OverWrite(Script, genOffset(4, ResSizePos + Diff), 0x1C);
+                genOffset(4, ResSizePos + Diff).CopyTo(Script, 0x1C);
+
+            //Return compressed packget if request...
             return CompressPackget ? MakeMDF(Script) : Script;
         }
-        internal byte[] OverWrite(byte[] Main, byte[] NewData, int Postion) {
-            for (int i = 0; i < NewData.Length; i++) {
-                Main[Postion + i] = NewData[i];
-            }
-            return Main;
-        }
         public byte[] TryRecovery(byte[] data) {
-            if (!IsValidPackget(data))
+            PackgetStatus Status = GetPackgetStatus(data);
+            if (Status == PackgetStatus.Invalid)
                 throw new Exception("Invalid Packget");
-            bool mdf = getRange(data, 0, 3) == "6D6466";
-            if (mdf)
+            bool mdf = false;
+            if (Status == PackgetStatus.MDF) {
+                mdf = true;
                 data = GetMDF(data);
+            }
             int StrOff = GetOffset(data, 0x10, 4);
             int StrData = GetOffset(data, 0x14, 4);
             int CntSize = ConvertSize(data[StrOff]);
@@ -116,11 +113,12 @@ namespace KrKrSceneManager {
                 EndStr++;
             byte[] seq = new byte[] { 0xD, 0x0, 0xD };
             if (EqualsAt(data, seq, EndStr + 1) && EqualsAt(data, seq, EndStr + 1 + seq.Length)) {
-                data = OverWrite(data, genOffset(4, EndStr + 1), 0x18);
-                data = OverWrite(data, genOffset(4, EndStr + 4), 0x1C);//+3
-                data = OverWrite(data, genOffset(4, EndStr + 7), 0x20);//+6
+                genOffset(4, EndStr + 1).CopyTo(data, 0x18);
+                genOffset(4, EndStr + 4).CopyTo(data, 0x1C);//+3
+                genOffset(4, EndStr + 7).CopyTo(data, 0x20);//+6
                 return mdf ? MakeMDF(data) : data;
-            } else {
+            }
+            else {
                 try {
                     int tmp = ConvertSize(data[GetOffset(data, 0x18, 4)]);
                     tmp = ConvertSize(data[GetOffset(data, 0x1C, 4)]);
@@ -143,14 +141,22 @@ namespace KrKrSceneManager {
         internal byte[] MakeMDF(byte[] psb) {
             byte[] CompressedScript;
             Tools.CompressData(psb, CompressionLevel, out CompressedScript);
+
             byte[] RetData = new byte[8 + CompressedScript.Length];
-            (new byte[] { 0x6D, 0x64, 0x66, 0x00 }).CopyTo(RetData, 0);
-            genOffset(4, psb.Length).CopyTo(RetData, 4);
-            CompressedScript.CopyTo(RetData, 8);
+            (new byte[] { 0x6D, 0x64, 0x66, 0x00 }).CopyTo(RetData, 0);//Signature
+            genOffset(4, psb.Length).CopyTo(RetData, 4);//Decompressed Length
+            CompressedScript.CopyTo(RetData, 8);//ZLIB Data
+
             return RetData;
         }
 
         #region res
+
+        /// <summary>
+        /// Resize DWORD to your minimal length
+        /// </summary>
+        /// <param name="off">DWORD to resize</param>
+        /// <returns>Shorted DWORD</returns>
         private byte[] shortdword(byte[] off) {
             int length = off.Length - 1;
             while (off[length] == 0x0 && length > 0)
@@ -161,11 +167,19 @@ namespace KrKrSceneManager {
             }
             return rst;
         }
+
+        /// <summary>
+        /// Generate a DWORD with specifed value and length
+        /// </summary>
+        /// <param name="size">DWORD Length</param>
+        /// <param name="Value">DWORD Value</param>
+        /// <returns>Result DWORD</returns>
         internal byte[] genOffset(int size, int Value) {
             byte[] Off = BitConverter.GetBytes(Value);
             if (!BitConverter.IsLittleEndian)
                 Array.Reverse(Off);
             Off = shortdword(Off);
+
             if (Off.Length > size)
                 throw new Exception("Edited Strings are too big.");
             if (Off.Length < size) {
@@ -174,11 +188,6 @@ namespace KrKrSceneManager {
                 Off = rst;
             }
             return Off;
-        }
-        internal byte[] writeOffset(ref byte[] offsets, int position, int Value, int OffsetSize) {
-            byte[] Offset = genOffset(OffsetSize, Value);
-            Offset.CopyTo(offsets, position);
-            return offsets;
         }
 
         private int GetOffsetSize(byte[] file) {
@@ -233,115 +242,92 @@ namespace KrKrSceneManager {
             return rst;
         }
         internal byte[] GetMDF(byte[] mdf) {
-            object tmp = new byte[mdf.Length - 8];
-            for (int i = 8; i < mdf.Length; i++)
-                ((byte[])tmp)[i - 8] = mdf[i];
+            byte[] zlib = new byte[mdf.Length - 8];
+            Array.Copy(mdf, 8, zlib, 0, mdf.Length - 8);
+
             byte[] DecompressedMDF;
-            Tools.DecompressData((byte[])tmp, out DecompressedMDF);
+            Tools.DecompressData(zlib, out DecompressedMDF);
             if (GetOffset(mdf, 4, 4) != DecompressedMDF.Length)
                 throw new Exception("Corrupted MDF Header or Zlib Data");
+
             return DecompressedMDF;
         }
-        public bool IsValidPackget(byte[] Packget) {
+        public enum PackgetStatus {
+            MDF, PSB, Invalid
+        }
+        public PackgetStatus GetPackgetStatus(byte[] Packget) {
             if (getRange(Packget, 0, 4) == "6D646600")
-                return true;
+                return PackgetStatus.MDF;
             if (getRange(Packget, 0, 3) == "505342")
-                return true;
-            return false;
+                return PackgetStatus.PSB;
+            return PackgetStatus.Invalid;
         }
         public void Import(byte[] Packget) {
-            if (getRange(Packget, 0, 4) == "6D646600")
-                Packget = GetMDF(Packget);
-            if (getRange(Packget, 0, 3) != "505342")
-                throw new Exception("Invalid KrKrZ Scene binary");
-            Source = Packget;
-            Status = "Reading Header...";
-            OffsetTable = GetOffset(Packget, 16, 4);
-            StringTable = GetOffset(Packget, 20, 4);
-            DefaultOffsetSize = GetOffsetSize(Packget);
-            TablePrefixSize = GetPrefixSize(Packget);
-            StrCount = GetStrCount(Packget);
-            Strings = new string[StrCount];
-            for (int str = -1, pos = OffsetTable + TablePrefixSize; pos < StringTable; pos += DefaultOffsetSize) {
-                str++;
-                Status = "Importing Strings... (" + (str * 100) / StrCount + "%)";
-                int index = GetOffset(Packget, pos, DefaultOffsetSize) + StringTable;
-                if (Packget[index] == 0x00)
-                    Strings[str] = string.Empty;
-                else
-                    Strings[str] = GetString(Packget, index);
-
-                if (pos + DefaultOffsetSize >= StringTable) //if the for loop ends now
-                {//get end of file
-                    int Size = Encoding.UTF8.GetBytes(Strings[str]).Length + 1;
-                    if (index + Size <= Packget.Length) {
-                        sufix = new byte[Packget.Length - (index + Size)];
-                        for (int i = index + Size, b = 0; i < Packget.Length; i++, b++)
-                            sufix[b] = Packget[i];
-                    }
-                }
+            PackgetStatus Status = GetPackgetStatus(Packget);
+            switch (Status) {
+                case PackgetStatus.Invalid:
+                    throw new Exception("Invalid Packget");
+                case PackgetStatus.MDF:
+                    Source = GetMDF(Packget);
+                    CompressPackget = true;
+                    break;
+                case PackgetStatus.PSB:
+                    Source = Packget;
+                    break;
             }
-            Status = "Imported";
+
+            //Initialize Variables
+            OffsetTable = GetOffset(Source, 16, 4);
+            StringTable = GetOffset(Source, 20, 4);
+            OffsetLength = GetOffsetSize(Source);
+            TblHrdLen = GetPrefixSize(Source);
+            StrCount = GetStrCount(Source);
+
+            //Get Strings
+            Strings = new string[StrCount];
+            int Offset = 0;
+            for (int i = 0; i < StrCount; i++) {
+                Offset = OffsetTable + TblHrdLen + (i * OffsetLength);
+                Offset = GetOffset(Source, Offset, OffsetLength) + StringTable;
+                Strings[i] = Source[Offset] == 0x00 ? string.Empty : GetString(Source, Offset);
+            }
+
+            //Get End position of the last string
+            while (Source[Offset] != 0x00)
+                Offset++;
+
+            //Get All data after string Table
+            int SufixPos = Offset + 1;
+            if (SufixPos < Source.Length) {
+                int Length = Source.Length - SufixPos;
+                Sufix = new byte[Length];
+                Array.Copy(Source, SufixPos, Sufix, 0, Length);
+            }
+
             Initialized = true;
         }
-
-        public string GetStatus() {
-            return Status;
-        }
-
         private string GetString(byte[] scene, int pos) {
             MemoryStream arr = new MemoryStream();
             for (int i = pos; scene[i] != 0x00 && i + 1 < scene.Length; i++)
                 arr.Write(new byte[] { scene[i] }, 0, 1);
-            arr.Seek(0, SeekOrigin.Begin);
+
             byte[] rst = new byte[arr.Length];
+            arr.Position = 0;
             arr.Read(rst, 0, (int)arr.Length);
             arr.Close();
+
             return Encoding.UTF8.GetString(rst);
         }
 
         internal int GetOffset(byte[] file, int index, int OffsetSize) {
             byte[] value = new byte[4];
-            for (int i = 0; i < OffsetSize; i++) {
-                value[i] = file[i + index];
-            }
-            if (!BitConverter.IsLittleEndian)
+            Array.Copy(file, index, value, 0, OffsetSize);
+
+            if (!BitConverter.IsLittleEndian)//Force Little Endian DWORD
                 Array.Reverse(value, 0, 4);
+
             return BitConverter.ToInt32(value, 0);
         }
-    }
-    internal class Tools {
-        internal static void CompressData(byte[] inData, int compression, out byte[] outData) {
-            using (MemoryStream outMemoryStream = new MemoryStream())
-            using (ZOutputStream outZStream = new ZOutputStream(outMemoryStream, compression))
-            using (Stream inMemoryStream = new MemoryStream(inData)) {
-                CopyStream(inMemoryStream, outZStream);
-                outZStream.Finish();
-                outData = outMemoryStream.ToArray();
-            }
-        }
-        internal static void CopyStream(Stream input, Stream output) {
-            byte[] buffer = new byte[2000];
-            int len;
-            while ((len = input.Read(buffer, 0, 2000)) > 0) {
-                output.Write(buffer, 0, len);
-            }
-            output.Flush();
-        }
-        internal static void DecompressData(byte[] inData, out byte[] outData) {
-            try {
-                using (Stream inMemoryStream = new MemoryStream(inData))
-                using (ZInputStream outZStream = new ZInputStream(inMemoryStream)) {
-                    MemoryStream outMemoryStream = new MemoryStream();
-                    CopyStream(outZStream, outMemoryStream);
-                    outData = outMemoryStream.ToArray();
-                }
-            }
-            catch {
-                outData = new byte[0];
-            }
-        }
-
     }
 }
 

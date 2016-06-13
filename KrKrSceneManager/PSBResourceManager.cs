@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace KrKrSceneManager
-{
+namespace KrKrSceneManager {
 
-    public class PSBResourceManager
-    {
+    public class PSBResourceManager {
 
         private byte[] packget;
         private PSBStringManager DataTools = new PSBStringManager();
@@ -25,8 +23,7 @@ namespace KrKrSceneManager
         public bool CompressPackget = false;
         public int CompressionLevel = 9;
         public bool FixOffsets = true;
-        public FileEntry[] Import(byte[] script)
-        {
+        public FileEntry[] Import(byte[] script) {
             if (DataTools.getRange(script, 0, 4) == "6D646600")
                 script = DataTools.GetMDF(script);
             if (DataTools.getRange(script, 0, 4) != "50534200")
@@ -45,8 +42,7 @@ namespace KrKrSceneManager
             int[] Sizes = GetValues(packget, ResSizePos);
             EntryCount = Offsets.Length;
             FileEntry[] Files = new FileEntry[EntryCount];
-            for (int i = 0; i < EntryCount; i++)
-            {
+            for (int i = 0; i < EntryCount; i++) {
                 int EndPos = Offsets[i] + Sizes[i];
                 byte[] data = new byte[Sizes[i]];
                 for (int ind = Offsets[i]; ind < EndPos; ind++)
@@ -56,10 +52,9 @@ namespace KrKrSceneManager
             Initialized = true;
             return Files;
         }
-        
-        
-        private int[] GetOffsetInfo(byte[] file, int pos)
-        {
+
+
+        private int[] GetOffsetInfo(byte[] file, int pos) {
             int OffSize = DataTools.ConvertSize(file[pos]);
             int Count = DataTools.GetOffset(file, pos + 1, OffSize);
             pos += 1 + OffSize;
@@ -69,20 +64,17 @@ namespace KrKrSceneManager
             return new int[] { DataTools.ConvertSize(file[pos]), pos + 1, Count };
         }
 
-        private int[] GetValues(byte[] file, int pos)
-        {
+        private int[] GetValues(byte[] file, int pos) {
             int[] tmp = GetOffsetInfo(file, pos);
             int[] Result = new int[tmp[2]];
             pos = tmp[1];
             int OffSize = tmp[0];
-            for (int i = 0; i < Result.Length; i++)
-            {
+            for (int i = 0; i < Result.Length; i++) {
                 Result[i] = DataTools.GetOffset(file, pos + (i * OffSize), OffSize);
             }
             return Result;
         }
-        public byte[] Export(FileEntry[] Resources)
-        {
+        public byte[] Export(FileEntry[] Resources) {
             if (!Initialized)
                 throw new Exception("You Need Import Before Export");
             if (Resources.Length != EntryCount)
@@ -93,12 +85,13 @@ namespace KrKrSceneManager
             byte[] ResTable = new byte[TotalSize];
             TotalSize = 0;
             byte[] MainData = CutAt(packget, StartPos);
-            for (int i = 0; i < Resources.Length; i++)
-            {
+            for (int i = 0; i < Resources.Length; i++) {
                 byte[] file = Resources[i].Data;
                 file.CopyTo(ResTable, TotalSize);
-                MainData = DataTools.OverWrite(MainData, DataTools.genOffset(OffsetSize, TotalSize), OffsetTablePos + (i * OffsetSize));
-                MainData = DataTools.OverWrite(MainData, DataTools.genOffset(ResSizeOffSize, file.Length), ResSizeOffTablePos + (i * ResSizeOffSize));
+                DataTools.genOffset(OffsetSize, TotalSize).CopyTo(MainData, OffsetTablePos + (i * OffsetSize));
+                DataTools.genOffset(ResSizeOffSize, file.Length).CopyTo(MainData, ResSizeOffTablePos + (i * ResSizeOffSize));
+                
+                //If need FixOffsets and is the last loop time...
                 TotalSize += file.Length + (FixOffsets && i + 1 != Resources.Length ? 4 - ((StartPos + TotalSize + file.Length) % 4) : 0);
             }
             byte[] ResultPackget = new byte[MainData.Length + ResTable.Length];
@@ -106,17 +99,15 @@ namespace KrKrSceneManager
             ResTable.CopyTo(ResultPackget, MainData.Length);
             return (CompressPackget) ? DataTools.MakeMDF(ResultPackget) : ResultPackget;
         }
-        private byte[] CutAt(byte[] Original, int Pos)
-        {
+        private byte[] CutAt(byte[] Original, int Pos) {
             byte[] rst = new byte[Pos];
             for (int i = 0; i < Pos; i++)
                 rst[i] = Original[i];
             return rst;
         }
-        
+
     }
-    public class FileEntry
-    {
+    public class FileEntry {
         public byte[] Data;
     }
 
@@ -128,14 +119,15 @@ namespace KrKrSceneManager
             for (int i = 0; i < data.Length;) {
                 byte cmd = data[i];
                 if (Repeat(cmd)) {
-                    int Times = GetInt(cmd) + 3; //I Don't know the reason, but with my test in dracu-riot this value increase 3 times...
+                    int Times = GetInt(cmd) + 3; //Minimal Compression
                     byte[] Data = GetDword(data, i + 1);
                     i += 5;
                     for (int count = 0; count < Times; count++)
                         stream.Write(Data, 0, Data.Length);
-                } else {
-                    int Length = (GetInt(cmd)+1)*4;//+1 because the first 4 bytes don't is counted in the offset... and *4 because 1 is equal a 4 bytes
-                    byte[] Data = SubArray(data, i+1, Length);
+                }
+                else {
+                    int Length = (GetInt(cmd) + 1) * 4;//+1 because the first 4 bytes don't is counted in the offset... and *4 because 1 is equal a 4 bytes
+                    byte[] Data = SubArray(data, i + 1, Length);
                     i += Length + 1;
                     stream.Write(Data, 0, Data.Length);
                 }
@@ -153,7 +145,7 @@ namespace KrKrSceneManager
                     cnt[i - 0x36] = data[i];
                 data = cnt;
             }
-            if (data.Length %4 > 0) {
+            if (data.Length % 4 > 0) {
                 byte[] nw = new byte[data.Length + (data.Length % 4)];
                 data.CopyTo(nw, 0);
                 data = nw;
@@ -172,16 +164,17 @@ namespace KrKrSceneManager
                         stream.Write(DW, 0, 4);
                         pos += (len + MinVal) * 4;
                     }
-                } else {
+                }
+                else {
                     int len = 0;
-                    while (!HaveLoop(data, pos + (len*4))) {
+                    while (!HaveLoop(data, pos + (len * 4))) {
                         len++;
                         if (pos + (len * 4) >= data.Length)
                             break;
                     }
                     while (len > 0) {
                         int off = (len > MaxInt) ? MaxInt : len;
-                        stream.Write(new byte[] { (byte)(off-1) }, 0, 1);
+                        stream.Write(new byte[] { (byte)(off - 1) }, 0, 1);
                         stream.Write(data, pos, off * 4);
                         len -= off;
                         pos += off * 4;
@@ -193,7 +186,7 @@ namespace KrKrSceneManager
             stream.Read(outdata, 0, outdata.Length);
             return outdata;
         }
-        
+
         private static int CountLoops(byte[] data, int Pos) {
             byte[] Find = GetDword(data, Pos);
             int Loops = 0;
