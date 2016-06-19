@@ -1,4 +1,4 @@
-### KiriKiriZSM ~4.7.2
+### KiriKiriZSM ~5.1
 [![Build Status](https://travis-ci.org/ForumHulp/pageaddon.svg?branch=master)](http://katawa.url.ph)
 
 A DLL Library tool to allow you write your own string editor or resouce manager in C#
