@@ -38,6 +38,9 @@
             this.decompressImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.compressImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tryRecoveryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.tJS2ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -49,7 +52,7 @@
             this.listBox1.FormattingEnabled = true;
             this.listBox1.ItemHeight = 16;
             this.listBox1.Location = new System.Drawing.Point(16, 15);
-            this.listBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.listBox1.Margin = new System.Windows.Forms.Padding(4);
             this.listBox1.Name = "listBox1";
             this.listBox1.Size = new System.Drawing.Size(579, 340);
             this.listBox1.TabIndex = 0;
@@ -60,7 +63,7 @@
             this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBox1.Location = new System.Drawing.Point(16, 357);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(4);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(579, 22);
             this.textBox1.TabIndex = 1;
@@ -73,9 +76,10 @@
             this.openFileToolStripMenuItem,
             this.saveFileToolStripMenuItem,
             this.huffmanToolStripMenuItem,
-            this.tryRecoveryToolStripMenuItem});
+            this.tryRecoveryToolStripMenuItem,
+            this.tJS2ToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(182, 136);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(182, 162);
             // 
             // openFileToolStripMenuItem
             // 
@@ -121,6 +125,29 @@
             this.tryRecoveryToolStripMenuItem.Text = "Try Recovery";
             this.tryRecoveryToolStripMenuItem.Click += new System.EventHandler(this.tryRecoveryToolStripMenuItem_Click);
             // 
+            // tJS2ToolStripMenuItem
+            // 
+            this.tJS2ToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.openToolStripMenuItem,
+            this.saveToolStripMenuItem});
+            this.tJS2ToolStripMenuItem.Name = "tJS2ToolStripMenuItem";
+            this.tJS2ToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.tJS2ToolStripMenuItem.Text = "TJS2";
+            // 
+            // openToolStripMenuItem
+            // 
+            this.openToolStripMenuItem.Name = "openToolStripMenuItem";
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.openToolStripMenuItem.Text = "Open";
+            this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
+            // 
+            // saveToolStripMenuItem
+            // 
+            this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
+            this.saveToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.saveToolStripMenuItem.Text = "Save";
+            this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -129,7 +156,7 @@
             this.ContextMenuStrip = this.contextMenuStrip1;
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.listBox1);
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
             this.Text = "Scn Editor";
             this.contextMenuStrip1.ResumeLayout(false);
@@ -149,6 +176,9 @@
         private System.Windows.Forms.ToolStripMenuItem decompressImageToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem compressImageToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tryRecoveryToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem tJS2ToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
     }
 }
 

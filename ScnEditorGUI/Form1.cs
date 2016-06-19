@@ -6,7 +6,7 @@ namespace ScnEditorGUI {
     public partial class Form1 : Form {
         public Form1() {
             InitializeComponent();
-            MessageBox.Show("This GUI don't is a stable translation tool, this program is a Demo for my dll, the \"KrKrSceneManager.dll\" it's a opensoruce project to allow you make your program to edit any scn file, with sig PSB or MDF.\n\nHow to use:\n*Rigth Click in the window to open or save the file\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
+            MessageBox.Show("This GUI don't is a stable translation tool, this program is a Demo for my dll, the \"KrKrSceneManager.dll\" it's a opensoruce project to allow you make your program to edit any scn file (with sig PSB or MDF) or TJS2 Files (with sig TJS2100)\n\nHow to use:\n*Rigth Click in the window to open or save the file\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
         }
 
         private void openFileToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -128,6 +128,46 @@ namespace ScnEditorGUI {
                 catch (Exception ex) {
                     MessageBox.Show("Failed To Recovery:\n" + ex.Message, "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
+            }
+        }
+        int DataSegment = 0;
+        Sector[] Segments = new Sector[0];
+        private void openToolStripMenuItem_Click(object sender, EventArgs e) {
+            OpenFileDialog fd = new OpenFileDialog();
+            fd.FileName = "";
+            fd.Filter = "KiriKiri TJS Compiled Files | *.tjs";
+            DialogResult dr = fd.ShowDialog();
+            if (dr == DialogResult.OK) {
+                byte[] Data = System.IO.File.ReadAllBytes(fd.FileName);
+                Segments = TJS2SManager.Split(Data);
+                for (int i = 0; i < Segments.Length; i++)
+                    if (Segments[i].SectorType == SectorType.DATA)
+                        DataSegment = i;
+                string[] Strings = TJS2SManager.GetContent(Segments[DataSegment]);
+                listBox1.Items.Clear();
+                foreach (string str in Strings)
+                    listBox1.Items.Add(str);
+            }
+        }
+
+        private void saveToolStripMenuItem_Click(object sender, EventArgs e) {
+            SaveFileDialog fd = new SaveFileDialog();
+            fd.FileName = "";
+            fd.Filter = "KiriKiri TJS Compiled Files | *.tjs";
+            DialogResult dr = fd.ShowDialog();
+            if (dr == DialogResult.OK) {
+                string[] NewString = new string[listBox1.Items.Count];
+                for (int i = 0; i < NewString.Length; i++)
+                    NewString[i] = listBox1.Items[i].ToString();
+
+                Sector DataSector = Segments[DataSegment];
+                TJS2SManager.SetContent(ref DataSector, NewString);
+                Segments[DataSegment] = DataSector;
+
+                byte[] NewTJS2 = TJS2SManager.Merge(Segments);
+
+                System.IO.File.WriteAllBytes(fd.FileName, NewTJS2);
+                MessageBox.Show("File Saved.");
             }
         }
     }
