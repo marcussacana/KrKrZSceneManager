@@ -5,10 +5,9 @@ using System.Text;
 
 namespace KrKrSceneManager {
 
-    public class PSBResourceManager {
+    public class PSBResManager {
 
         private byte[] packget;
-        private PSBStringManager DataTools = new PSBStringManager();
         public int EntryCount { get; private set; }
         public int ResSizePos { get; private set; }
 
@@ -24,17 +23,19 @@ namespace KrKrSceneManager {
         public int CompressionLevel = 9;
         public bool FixOffsets = true;
         public FileEntry[] Import(byte[] script) {
-            if (DataTools.getRange(script, 0, 4) == "6D646600")
-                script = DataTools.GetMDF(script);
-            if (DataTools.getRange(script, 0, 4) != "50534200")
+            PSBStrMan.PackgetStatus Status = PSBStrMan.GetPackgetStatus(script);
+            if (Status == PSBStrMan.PackgetStatus.MDF)
+                script = PSBStrMan.ExtractMDF(script);
+            if (Status != PSBStrMan.PackgetStatus.PSB)
                 throw new Exception("Bad File Format");
+
             packget = script;
-            StartPos = DataTools.GetOffset(packget, 0x20, 4);
-            OffsetPos = DataTools.GetOffset(packget, 0x18, 4);
+            StartPos = PSBStrMan.ReadOffset(packget, 0x20, 4);
+            OffsetPos = PSBStrMan.ReadOffset(packget, 0x18, 4);
             int[] tmp = GetOffsetInfo(packget, OffsetPos);
             OffsetSize = tmp[0];
             OffsetTablePos = tmp[1];
-            ResSizePos = DataTools.GetOffset(packget, 0x1C, 4);
+            ResSizePos = PSBStrMan.ReadOffset(packget, 0x1C, 4);
             tmp = GetOffsetInfo(packget, ResSizePos);
             ResSizeOffSize = tmp[0];
             ResSizeOffTablePos = tmp[1];
@@ -55,13 +56,13 @@ namespace KrKrSceneManager {
 
 
         private int[] GetOffsetInfo(byte[] file, int pos) {
-            int OffSize = DataTools.ConvertSize(file[pos]);
-            int Count = DataTools.GetOffset(file, pos + 1, OffSize);
+            int OffSize = PSBStrMan.ConvertSize(file[pos]);
+            int Count = PSBStrMan.ReadOffset(file, pos + 1, OffSize);
             pos += 1 + OffSize;
             //return[0] = OffsetSize;
             //return[1] = StartOffsetPos;
             //return[2] = EntryCount;
-            return new int[] { DataTools.ConvertSize(file[pos]), pos + 1, Count };
+            return new int[] { PSBStrMan.ConvertSize(file[pos]), pos + 1, Count };
         }
 
         private int[] GetValues(byte[] file, int pos) {
@@ -70,7 +71,7 @@ namespace KrKrSceneManager {
             pos = tmp[1];
             int OffSize = tmp[0];
             for (int i = 0; i < Result.Length; i++) {
-                Result[i] = DataTools.GetOffset(file, pos + (i * OffSize), OffSize);
+                Result[i] = PSBStrMan.ReadOffset(file, pos + (i * OffSize), OffSize);
             }
             return Result;
         }
@@ -88,8 +89,8 @@ namespace KrKrSceneManager {
             for (int i = 0; i < Resources.Length; i++) {
                 byte[] file = Resources[i].Data;
                 file.CopyTo(ResTable, TotalSize);
-                DataTools.genOffset(OffsetSize, TotalSize).CopyTo(MainData, OffsetTablePos + (i * OffsetSize));
-                DataTools.genOffset(ResSizeOffSize, file.Length).CopyTo(MainData, ResSizeOffTablePos + (i * ResSizeOffSize));
+                PSBStrMan.CreateOffset(OffsetSize, TotalSize).CopyTo(MainData, OffsetTablePos + (i * OffsetSize));
+                PSBStrMan.CreateOffset(ResSizeOffSize, file.Length).CopyTo(MainData, ResSizeOffTablePos + (i * ResSizeOffSize));
                 
                 //If need FixOffsets and is the last loop time...
                 TotalSize += file.Length + (FixOffsets && i + 1 != Resources.Length ? 4 - ((StartPos + TotalSize + file.Length) % 4) : 0);
@@ -97,7 +98,7 @@ namespace KrKrSceneManager {
             byte[] ResultPackget = new byte[MainData.Length + ResTable.Length];
             MainData.CopyTo(ResultPackget, 0);
             ResTable.CopyTo(ResultPackget, MainData.Length);
-            return (CompressPackget) ? DataTools.MakeMDF(ResultPackget) : ResultPackget;
+            return (CompressPackget) ? PSBStrMan.CompressMDF(ResultPackget) : ResultPackget;
         }
         private byte[] CutAt(byte[] Original, int Pos) {
             byte[] rst = new byte[Pos];

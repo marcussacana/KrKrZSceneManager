@@ -18,8 +18,8 @@ namespace ScnEditorGUI {
                 OpenFile(fd.FileName);
         }
         bool ResourceMode = false;
-        PSBResourceManager PRM = new PSBResourceManager();
-        public PSBStringManager SCN = new PSBStringManager();
+        PSBResManager PRM = new PSBResManager();
+        public PSBStrMan SCN;
         private void OpenFile(string fname) {
             if (fname.EndsWith(".pimg")) {
                 ResourceMode = true;
@@ -31,8 +31,8 @@ namespace ScnEditorGUI {
             else {
                 ResourceMode = false;
                 listBox1.Items.Clear();
-                SCN.Import(System.IO.File.ReadAllBytes(fname));
-                foreach (string str in SCN.Strings) {
+                SCN = new PSBStrMan(System.IO.File.ReadAllBytes(fname));
+                foreach (string str in SCN.Import()) {
                     listBox1.Items.Add(str);
                 }
             }
@@ -66,13 +66,14 @@ namespace ScnEditorGUI {
                 save.Filter = "KiriKiri Compiled Files | *.scn; *.psb|Pack of Resources | *.pimg";
                 DialogResult dr = save.ShowDialog();
                 if (dr == DialogResult.OK) {
-                    for (int i = 0; i < SCN.Strings.Length; i++) {
-                        SCN.Strings[i] = listBox1.Items[i].ToString();
+                    string[] Strings = new string[listBox1.Items.Count];
+                    for (int i = 0; i < Strings.Length; i++) {
+                        Strings[i] = listBox1.Items[i].ToString();
                     }
                     dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nDoes not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     SCN.CompressPackget = dr == DialogResult.Yes;
-                    SCN.CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
-                    byte[] outfile = SCN.Export();
+                    PSBStrMan.CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
+                    byte[] outfile = SCN.Export(Strings);
                     System.IO.File.WriteAllBytes(save.FileName, outfile);
 
                 }
@@ -115,23 +116,25 @@ namespace ScnEditorGUI {
         }
 
         private void tryRecoveryToolStripMenuItem_Click(object sender, EventArgs e) {
+            throw new NotImplementedException();
+            /*
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Filter = "All PSB Files|*.psb;*.scn;*.pimg";
             DialogResult dr = ofd.ShowDialog();
             if (dr == DialogResult.OK) {
                 try {
                     byte[] data = System.IO.File.ReadAllBytes(ofd.FileName);
-                    data = (new PSBStringManager()).TryRecovery(data);
+                    data = PSBStrMan.TryRecovery(data);
                     System.IO.File.WriteAllBytes(ofd.FileName, data);
                     MessageBox.Show("Packget Offset's Updated", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex) {
                     MessageBox.Show("Failed To Recovery:\n" + ex.Message, "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-            }
+            }*/
         }
-        int DataSegment = 0;
-        Sector[] Segments = new Sector[0];
+
+        TJS2SManager TJSEditor;
         private void openToolStripMenuItem_Click(object sender, EventArgs e) {
             OpenFileDialog fd = new OpenFileDialog();
             fd.FileName = "";
@@ -139,11 +142,8 @@ namespace ScnEditorGUI {
             DialogResult dr = fd.ShowDialog();
             if (dr == DialogResult.OK) {
                 byte[] Data = System.IO.File.ReadAllBytes(fd.FileName);
-                Segments = TJS2SManager.Split(Data);
-                for (int i = 0; i < Segments.Length; i++)
-                    if (Segments[i].SectorType == SectorType.DATA)
-                        DataSegment = i;
-                string[] Strings = TJS2SManager.GetContent(Segments[DataSegment]);
+                TJSEditor = new TJS2SManager(Data);
+                string[] Strings = TJSEditor.Import();
                 listBox1.Items.Clear();
                 foreach (string str in Strings)
                     listBox1.Items.Add(str);
@@ -159,14 +159,7 @@ namespace ScnEditorGUI {
                 string[] NewString = new string[listBox1.Items.Count];
                 for (int i = 0; i < NewString.Length; i++)
                     NewString[i] = listBox1.Items[i].ToString();
-
-                Sector DataSector = Segments[DataSegment];
-                TJS2SManager.SetContent(ref DataSector, NewString);
-                Segments[DataSegment] = DataSector;
-
-                byte[] NewTJS2 = TJS2SManager.Merge(Segments);
-
-                System.IO.File.WriteAllBytes(fd.FileName, NewTJS2);
+                System.IO.File.WriteAllBytes(fd.FileName, TJSEditor.Export(NewString));
                 MessageBox.Show("File Saved.");
             }
         }

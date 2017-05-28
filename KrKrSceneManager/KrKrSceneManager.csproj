@@ -43,6 +43,7 @@
     <Compile Include="PSBResourceManager.cs" />
     <Compile Include="PSBStringManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StructStream.cs" />
     <Compile Include="TJS2Manager.cs" />
     <Compile Include="Zlib\Adler32.cs" />
     <Compile Include="Zlib\Deflate.cs" />

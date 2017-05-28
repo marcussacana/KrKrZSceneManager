@@ -12,10 +12,10 @@ namespace KrKrSceneManager {
             }
         }
         internal static void CopyStream(Stream input, Stream output) {
-            byte[] buffer = new byte[2000];
+            byte[] Buffer = new byte[2000];
             int len;
-            while ((len = input.Read(buffer, 0, 2000)) > 0) {
-                output.Write(buffer, 0, len);
+            while ((len = input.Read(Buffer, 0, Buffer.Length)) > 0) {
+                output.Write(Buffer, 0, len);
             }
             output.Flush();
         }
@@ -32,6 +32,24 @@ namespace KrKrSceneManager {
                 outData = new byte[0];
             }
         }
+        
 
+    }
+
+    internal struct StrEntry {
+        [AdvancedBinary.CString]
+        internal string Content;
+    }
+    internal struct PSBHeader {
+        internal uint Signature;
+        internal uint Version;//Tested: 1, 2, 3
+        uint Unk;
+        uint Unk2;
+        internal uint StrOffPos;
+        internal uint StrDataPos;
+        internal uint ResOffPos;
+        internal uint ResLenPos;
+        internal uint ResDataPos;
+        internal uint ResIndexTree;
     }
 }

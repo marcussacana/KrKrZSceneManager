@@ -2,7 +2,7 @@
 using System.Text;
 
 namespace KrKrSceneManager {
-    public static class TJS2SManager {
+    public partial class TJS2SManager {
         public static Sector[] Split(byte[] TJS2) {
             uint TJS2Len = Commom.GetDW(TJS2, 0x08);
             if (TJS2Len != TJS2.Length)
@@ -249,4 +249,27 @@ namespace KrKrSceneManager {
         }
     }
      
+    public partial class TJS2SManager {
+        Sector[] Sectors;
+        int DataIndex;
+        public TJS2SManager(byte[] Script) {
+            Sectors = Split(Script);
+            for (int i = 0; i < Sectors.Length; i++) {
+                if (Sectors[i].SectorType == SectorType.DATA) {
+                    DataIndex = i;
+                    return;
+                }
+            }
+            throw new Exception("Failed");
+        }
+
+        public string[] Import() {
+            return GetContent(Sectors[DataIndex]);            
+        }
+
+        public byte[] Export(string[] Strings) {
+            SetContent(ref Sectors[DataIndex], Strings);
+            return Merge(Sectors);
+        }
+    }
 }
