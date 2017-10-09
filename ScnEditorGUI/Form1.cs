@@ -19,7 +19,7 @@ namespace ScnEditorGUI {
         }
         bool ResourceMode = false;
         PSBResManager PRM = new PSBResManager();
-        public PSBStrMan SCN;
+        public PSBAnalyzer SCN;
         private void OpenFile(string fname) {
             if (fname.EndsWith(".pimg")) {
                 ResourceMode = true;
@@ -31,7 +31,7 @@ namespace ScnEditorGUI {
             else {
                 ResourceMode = false;
                 listBox1.Items.Clear();
-                SCN = new PSBStrMan(System.IO.File.ReadAllBytes(fname));
+                SCN = new PSBAnalyzer(System.IO.File.ReadAllBytes(fname));
                 foreach (string str in SCN.Import()) {
                     listBox1.Items.Add(str);
                 }
@@ -163,5 +163,121 @@ namespace ScnEditorGUI {
                 MessageBox.Show("File Saved.");
             }
         }
+
+        private void ClipboardSeekSample_Click(object sender, EventArgs e) {
+            SeekUpdate.Enabled = ClipboardSeekSample.Checked;
+        }
+
+        string LastClip = string.Empty;
+        private void SeekUpdate_Tick(object sender, EventArgs e) {
+            string Clip = Clipboard.GetText();
+            if (LastClip != Clip) {
+                LastClip = Clip;
+                Clip = SimplfyMatch(Clip);
+                if (!string.IsNullOrWhiteSpace(Clip)) {
+                    for (int i = 0; i < listBox1.Items.Count; i++) {
+                        string Line = SimplfyMatch(listBox1.Items[i].ToString());
+                        if (Line == Clip) {
+                            SaveIfNeeded();
+                            listBox1.SelectedIndex = i;
+                            return;
+                        }
+                    }
+                    for (int i = 0; i < listBox1.Items.Count; i++) {
+                        string Line = SimplfyMatch(listBox1.Items[i].ToString());
+                        if (Line.Contains(Clip)) {
+                            SaveIfNeeded();
+                            listBox1.SelectedIndex = i;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void SaveIfNeeded() {
+            int Sel = listBox1.SelectedIndex;
+            if (Sel < 0)
+                return;
+            if (textBox1.Text != listBox1.Items[Sel].ToString())
+                listBox1.Items[Sel] = textBox1.Text;
+        }
+
+        /// <summary>
+        /// Minify a String at the max.
+        /// </summary>
+        /// <param name="Str">The string to Minify</param>
+        /// <returns>The Minified String</returns>
+        internal static string SimplfyMatch(string Str) {
+            string Output = TrimString(Str);
+            for (int i = 0; i < MatchDel.Length; i++)
+                Output = Output.Replace(MatchDel[i], "");
+            return Output;
+        }        
+
+        /// <summary>
+        /// Trim a String
+        /// </summary>
+        /// <param name="Txt">The String to Trim</param>
+        /// <returns>The Result</returns>
+        internal static string TrimString(string Input) {
+            string Result = Input;
+            Result = TrimStart(Result);
+            Result = TrimEnd(Result);
+            return Result;
+        }
+
+        /// <summary>
+        /// Trim the Begin of the String
+        /// </summary>
+        /// <param name="Txt">The String to Trim</param>
+        /// <returns>The Result</returns>
+        internal static string TrimStart(string Txt) {
+            string rst = Txt;
+            foreach (string str in TrimContent) {
+                if (string.IsNullOrEmpty(str))
+                    continue;
+                while (rst.StartsWith(str)) {
+                    rst = rst.Substring(str.Length, rst.Length - str.Length);
+                }
+            }
+
+            if (rst != Txt)
+                rst = TrimStart(rst);
+
+            return rst;
+        }
+
+        /// <summary>
+        /// Trim the End of the String
+        /// </summary>
+        /// <param name="Txt">The String to Trim</param>
+        /// <returns>The Result</returns>
+        internal static string TrimEnd(string Txt) {
+            string rst = Txt;
+            foreach (string str in TrimContent) {
+                if (string.IsNullOrEmpty(str))
+                    continue;
+                while (rst.EndsWith(str)) {
+                    rst = rst.Substring(0, rst.Length - str.Length);
+                }
+            }            
+
+            if (rst != Txt)
+                rst = TrimEnd(rst);
+
+            return rst;
+        }
+        static string[] MatchDel = new string[] {
+            "\r", "\\r", "\n", "\\n", " ", "_r", "―", "-", "*", "♥", "①", "♪"
+        };
+
+        static string[] TrimContent = new string[] {
+            " ", "'", "\"", "<", "(", "[", "“", "［", "《", "«",
+            "「", "『", "【", "]", "”", "］", "》",
+            "»", "」", "』", "】", ")", ">", "‘", "’", "〃", "″",
+            "～", "~", "―", "-", "%K", "%LC", "♪", "%P", "%f;",
+            "%fSourceHanSansCN-M;", "[―]"
+        };
     }
 }

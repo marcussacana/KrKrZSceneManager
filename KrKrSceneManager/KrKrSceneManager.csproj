@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Algorithms.cs" />
+    <Compile Include="PSBAnalyzer.cs" />
     <Compile Include="PSBResourceManager.cs" />
     <Compile Include="PSBStringManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

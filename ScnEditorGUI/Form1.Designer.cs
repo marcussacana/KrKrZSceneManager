@@ -41,6 +41,8 @@
             this.tJS2ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ClipboardSeekSample = new System.Windows.Forms.ToolStripMenuItem();
+            this.SeekUpdate = new System.Windows.Forms.Timer(this.components);
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -50,11 +52,9 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.listBox1.FormattingEnabled = true;
-            this.listBox1.ItemHeight = 16;
-            this.listBox1.Location = new System.Drawing.Point(16, 15);
-            this.listBox1.Margin = new System.Windows.Forms.Padding(4);
+            this.listBox1.Location = new System.Drawing.Point(12, 12);
             this.listBox1.Name = "listBox1";
-            this.listBox1.Size = new System.Drawing.Size(579, 340);
+            this.listBox1.Size = new System.Drawing.Size(435, 277);
             this.listBox1.TabIndex = 0;
             this.listBox1.SelectedIndexChanged += new System.EventHandler(this.listBox1_SelectedIndexChanged);
             // 
@@ -62,10 +62,9 @@
             // 
             this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox1.Location = new System.Drawing.Point(16, 357);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox1.Location = new System.Drawing.Point(12, 290);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(579, 22);
+            this.textBox1.Size = new System.Drawing.Size(435, 20);
             this.textBox1.TabIndex = 1;
             this.textBox1.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBox1_KeyPress);
             // 
@@ -77,21 +76,22 @@
             this.saveFileToolStripMenuItem,
             this.huffmanToolStripMenuItem,
             this.tryRecoveryToolStripMenuItem,
-            this.tJS2ToolStripMenuItem});
+            this.tJS2ToolStripMenuItem,
+            this.ClipboardSeekSample});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(182, 162);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(154, 136);
             // 
             // openFileToolStripMenuItem
             // 
             this.openFileToolStripMenuItem.Name = "openFileToolStripMenuItem";
-            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.openFileToolStripMenuItem.Text = "Open File";
             this.openFileToolStripMenuItem.Click += new System.EventHandler(this.openFileToolStripMenuItem_Click);
             // 
             // saveFileToolStripMenuItem
             // 
             this.saveFileToolStripMenuItem.Name = "saveFileToolStripMenuItem";
-            this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.saveFileToolStripMenuItem.Text = "Save File";
             this.saveFileToolStripMenuItem.Click += new System.EventHandler(this.saveFileToolStripMenuItem_Click);
             // 
@@ -101,27 +101,27 @@
             this.decompressImageToolStripMenuItem,
             this.compressImageToolStripMenuItem});
             this.huffmanToolStripMenuItem.Name = "huffmanToolStripMenuItem";
-            this.huffmanToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.huffmanToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.huffmanToolStripMenuItem.Text = "Huffman";
             // 
             // decompressImageToolStripMenuItem
             // 
             this.decompressImageToolStripMenuItem.Name = "decompressImageToolStripMenuItem";
-            this.decompressImageToolStripMenuItem.Size = new System.Drawing.Size(212, 26);
+            this.decompressImageToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.decompressImageToolStripMenuItem.Text = "Decompress Image";
             this.decompressImageToolStripMenuItem.Click += new System.EventHandler(this.decompressImageToolStripMenuItem_Click);
             // 
             // compressImageToolStripMenuItem
             // 
             this.compressImageToolStripMenuItem.Name = "compressImageToolStripMenuItem";
-            this.compressImageToolStripMenuItem.Size = new System.Drawing.Size(212, 26);
+            this.compressImageToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.compressImageToolStripMenuItem.Text = "Compress Image";
             this.compressImageToolStripMenuItem.Click += new System.EventHandler(this.compressImageToolStripMenuItem_Click);
             // 
             // tryRecoveryToolStripMenuItem
             // 
             this.tryRecoveryToolStripMenuItem.Name = "tryRecoveryToolStripMenuItem";
-            this.tryRecoveryToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.tryRecoveryToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.tryRecoveryToolStripMenuItem.Text = "Try Recovery";
             this.tryRecoveryToolStripMenuItem.Click += new System.EventHandler(this.tryRecoveryToolStripMenuItem_Click);
             // 
@@ -131,32 +131,47 @@
             this.openToolStripMenuItem,
             this.saveToolStripMenuItem});
             this.tJS2ToolStripMenuItem.Name = "tJS2ToolStripMenuItem";
-            this.tJS2ToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.tJS2ToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.tJS2ToolStripMenuItem.Text = "TJS2";
             // 
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
             this.openToolStripMenuItem.Text = "Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
             // saveToolStripMenuItem
             // 
             this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
-            this.saveToolStripMenuItem.Size = new System.Drawing.Size(181, 26);
+            this.saveToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
             this.saveToolStripMenuItem.Text = "Save";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             // 
+            // ClipboardSeekSample
+            // 
+            this.ClipboardSeekSample.Checked = true;
+            this.ClipboardSeekSample.CheckOnClick = true;
+            this.ClipboardSeekSample.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ClipboardSeekSample.Name = "ClipboardSeekSample";
+            this.ClipboardSeekSample.Size = new System.Drawing.Size(153, 22);
+            this.ClipboardSeekSample.Text = "Seek Clipboard";
+            this.ClipboardSeekSample.Click += new System.EventHandler(this.ClipboardSeekSample_Click);
+            // 
+            // SeekUpdate
+            // 
+            this.SeekUpdate.Enabled = true;
+            this.SeekUpdate.Interval = 500;
+            this.SeekUpdate.Tick += new System.EventHandler(this.SeekUpdate_Tick);
+            // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(612, 396);
+            this.ClientSize = new System.Drawing.Size(459, 322);
             this.ContextMenuStrip = this.contextMenuStrip1;
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.listBox1);
-            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
             this.Text = "Scn Editor";
             this.contextMenuStrip1.ResumeLayout(false);
@@ -179,6 +194,8 @@
         private System.Windows.Forms.ToolStripMenuItem tJS2ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem ClipboardSeekSample;
+        private System.Windows.Forms.Timer SeekUpdate;
     }
 }
 
