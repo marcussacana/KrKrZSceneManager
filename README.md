@@ -1,4 +1,4 @@
-### KiriKiriZSM ~5.4
+### KiriKiriZSM ~5.5
 [![Build Status](https://travis-ci.org/ForumHulp/pageaddon.svg?branch=master)](http://vnx.uvnworks.com)
 
 A DLL Library tool to allow you write your own string editor or resouce manager in C#

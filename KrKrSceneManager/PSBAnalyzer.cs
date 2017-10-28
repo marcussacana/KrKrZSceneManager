@@ -22,7 +22,10 @@ namespace KrKrSceneManager {
                 CompressPackget = true,
                 ForceMaxOffsetLength = ExtendStringLimit
             };
-            ByteCodeLen = ReadOffset(Script, 0x10, 4) - ByteCodeStart;
+            if (PSBStrMan.GetPackgetStatus(Script) == PSBStrMan.PackgetStatus.MDF)
+                this.Script = PSBStrMan.ExtractMDF(Script);
+
+            ByteCodeLen = ReadOffset(this.Script, 0x10, 4) - ByteCodeStart;
         }
 
         public string[] Import() {
@@ -50,7 +53,7 @@ namespace KrKrSceneManager {
         }
 
         public byte[] Export(string[] Strings) {
-            string[] Content = Desort(Strings, Calls.ToArray());
+            string[] Content = Sort(Strings, Calls.ToArray());
 
             return StringManager.Export(Content);
         }
@@ -101,7 +104,7 @@ namespace KrKrSceneManager {
                 default:
                     Index++;
                     return -2;
-
+                    
                 //Ints
                 case 0x5:
                     Index += 2;
@@ -201,6 +204,7 @@ namespace KrKrSceneManager {
                         goto default;
                     Index += 9;
                     return -1;
+                
 
                 //Strings - Hay \o/
                 case 0x15:
