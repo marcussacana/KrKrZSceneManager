@@ -9,7 +9,7 @@ using System.Reflection;
 /// </summary>
 namespace AdvancedBinary {
 
-    enum StringStyle {
+    public enum StringStyle {
         /// <summary>
         /// C-Style String (null terminated)
         /// </summary>
@@ -19,7 +19,7 @@ namespace AdvancedBinary {
         /// </summary>
         UCString,
         /// <summary>
-        /// Pascal-Style String (int32 Length Prefix)
+        /// Pascal-Style String (Prefixed with the Length)
         /// </summary>
         PString
     }
@@ -31,7 +31,7 @@ namespace AdvancedBinary {
     /// <param name="Stream">Stream Instance</param>
     /// <param name="FromReader">Determine if the method is invoked from the StructReader or StructWriter</param>
     /// <param name="StructInstance">Struct instance reference</param>
-    /// <return>Struct Instance</return>
+    /// <return>New Struct Instance</return>
     public delegate dynamic FieldInvoke(Stream Stream, bool FromReader, dynamic StructInstance);
 
     /// <summary>
@@ -56,14 +56,33 @@ namespace AdvancedBinary {
         public bool UnicodeLength;
     }
 
+    /// <summary>
+    /// Pre-Defined String Length
+    /// </summary>
     public class FString : Attribute {
         public long Length;
     }
+
+
+    /// <summary>
+    /// Fixed Length Array
+    /// </summary>
+    public class FArray : Attribute {
+        public long Length;
+    }
+
+    /// <summary>
+    /// Prefixed Length Array 
+    /// </summary>
+    public class PArray : Attribute {
+        public string PrefixType = Const.UINT32;
+    }
+
     /// <summary>
     /// Struct Field Type (required only to sub structs)
     /// </summary>
     public class StructField : Attribute { }
-    internal class Const {
+    public class Const {
         //Types
         public const string INT8 = "System.SByte";
         public const string UINT8 = "System.Byte";
@@ -77,6 +96,7 @@ namespace AdvancedBinary {
         public const string UINT64 = "System.UInt64";
         public const string STRING = "System.String";
         public const string DELEGATE = "System.MulticastDelegate";
+        public const string CHAR = "System.Char";
 
         //Attributes
         public const string PSTRING = "PString";
@@ -85,6 +105,8 @@ namespace AdvancedBinary {
         public const string FSTRING = "FString";
         public const string STRUCT = "StructField";
         public const string IGNORE = "Ignore";
+        public const string FARRAY = "FArray";
+        public const string PARRAY = "PArray";
     }
 
     static class Tools {
@@ -110,7 +132,15 @@ namespace AdvancedBinary {
             }
             throw new Exception("Field Not Found");
         }*/
-
+        
+        public static void CopyStream(Stream input, Stream output) {
+            int Readed = 0;
+            byte[] Buffer = new byte[1024 * 1024];
+            do {
+                Readed = input.Read(Buffer, 0, Buffer.Length);
+                output.Write(Buffer, 0, Readed);
+            } while (Readed > 00);
+        }
 
         public static dynamic Reverse(dynamic Data) {
             byte[] Arr = BitConverter.GetBytes(Data);
@@ -201,9 +231,10 @@ namespace AdvancedBinary {
                     return true;
             return false;
         }
-        public static void ReadStruct(byte[] Array, ref object Struct, bool IsBigEnddian = false, Encoding Encoding = null) {
+        public static void ReadStruct<T>(byte[] Array, ref T Struct, bool IsBigEnddian = false, Encoding Encoding = null, long BaseOffset = 0) {
             MemoryStream Stream = new MemoryStream(Array);
             StructReader Reader = new StructReader(Stream, IsBigEnddian, Encoding);
+            Reader.Seek(BaseOffset, SeekOrigin.Begin);
             Reader.ReadStruct(ref Struct);
             Reader.Close();
             Stream?.Close();
@@ -231,11 +262,18 @@ namespace AdvancedBinary {
         }
     }
 
-    class StructWriter : BinaryWriter {
+    public class StructWriter : BinaryWriter {
 
-        private bool BigEndian = false;
-        private Encoding Encoding;
-        public StructWriter(Stream Input, bool BigEndian = false, Encoding Encoding = null) : base(Input) {
+        internal bool BigEndian = false;
+        internal Encoding Encoding;
+
+        public StructWriter(Stream Output, bool BigEndian = false, Encoding Encoding = null) : base(Output) {
+            if (Encoding == null)
+                Encoding = Encoding.UTF8;
+            this.BigEndian = BigEndian;
+            this.Encoding = Encoding;
+        }
+        public StructWriter(string OutputFile, bool BigEndian = false, Encoding Encoding = null) : base(new StreamWriter(OutputFile).BaseStream) {
             if (Encoding == null)
                 Encoding = Encoding.UTF8;
             this.BigEndian = BigEndian;
@@ -249,53 +287,113 @@ namespace AdvancedBinary {
             Struct = (T)tmp;
         }
 
-        private void WriteStruct(Type type, ref object Instance) {
+        internal void WriteStruct(Type type, ref object Instance) {
             FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             foreach (FieldInfo field in fields) {
                 if (HasAttribute(field, Const.IGNORE))
-                    break;
+                    continue;
                 dynamic Value = field.GetValue(Instance);
-                switch (field.FieldType.ToString()) {
-                    case Const.STRING:
-                        if (HasAttribute(field, Const.CSTRING)) {
-                            Write(Value, StringStyle.CString);
-                            break;
-                        }
-                        if (HasAttribute(field, Const.UCSTRING)) {
-                            Write(Value, StringStyle.UCString);
-                            break;
-                        }
-                        if (HasAttribute(field, Const.PSTRING)) {
-                            Write(field, Value, StringStyle.PString);
-                            break;
-                        }
-                        if (HasAttribute(field, Const.FSTRING)) {
-                            byte[] Buffer = new byte[Tools.GetAttributePropertyValue(field, Const.FSTRING, "Length")];
-                            Encoding.GetBytes((string)Value).CopyTo(Buffer, 0);
-                            Write(Buffer);
-                            break;
-                        }
-                        throw new Exception("String Attribute Not Specified.");
-                    default:
-                        if (HasAttribute(field, Const.STRUCT)) {
-                            WriteStruct(field.FieldType, ref Value);
-                        } else {
-                            if (field.FieldType.BaseType.ToString() == Const.DELEGATE) {
-                                FieldInvoke Invoker = ((FieldInvoke)Value);
-                                if (Invoker == null)
-                                    break;
-                                Instance = Invoker.Invoke(BaseStream, false, Instance);
-                                field.SetValue(Instance, Invoker);
-                            } else if (BigEndian)
-                                Write(Tools.Reverse(Value));
-                            else
-                                Write(Value);
-                        }
-                        break;
+                string Type = field.FieldType.ToString();
+                if (!Type.EndsWith("[]")) {
+                    WriteField(Value, Type, field, ref Instance);
+                    continue;
+                }
+                if (HasAttribute(field, Const.FARRAY)) {
+                    long BufferLen = Tools.GetAttributePropertyValue(field, Const.FARRAY, "Length");
+
+                    if (Value.Length > BufferLen)
+                        throw new Exception("Wrong Array Buffer Length");
+
+                    byte[] Arr = new byte[BufferLen];
+                    Value.CopyTo(Arr, 0);
+
+                    Write(Arr);
+                    continue;
+                }
+
+                if (!HasAttribute(field, Const.PARRAY))
+                    throw new Exception("Bad Struct Array Configuration.");
+
+                string PType = Tools.GetAttributePropertyValue(field, Const.PARRAY, "PrefixType");
+                dynamic Length = ParseType(Value.LongLength, PType);
+
+                if (BigEndian)
+                    Length = Tools.Reverse(Length);
+                Write(Length);
+
+                for (long i = 0; i < Length; i++) {
+                    WriteField(Value[i], Type.Substring(0, Type.Length-2), field, ref Instance);
                 }
             }
         }
 
+        internal dynamic ParseType(dynamic Value, string Type) {
+            switch (Type) {
+                case Const.INT8:
+                    return (sbyte)Value;
+                case Const.UINT8:
+                    return (byte)Value;
+                case Const.INT16:
+                    return (short)Value;
+                case Const.UINT16:
+                    return (ushort)Value;
+                case Const.INT32:
+                    return (int)Value;
+                case Const.UINT32:
+                    return (uint)Value;
+                case Const.INT64:
+                    return (long)Value;
+                case Const.UINT64:
+                    return (ulong)Value;
+                case Const.DOUBLE:
+                    return (double)Value;
+                case Const.FLOAT:
+                    return (float)Value;
+                default:
+                    throw new Exception("Bad Struct Configuration");
+            }
+        }
+
+        internal void WriteField(dynamic Value, string Type, FieldInfo field, ref object Instance) {
+            switch (Type) {
+                case Const.STRING:
+                    if (HasAttribute(field, Const.CSTRING)) {
+                        Write(Value, StringStyle.CString);
+                        break;
+                    }
+                    if (HasAttribute(field, Const.UCSTRING)) {
+                        Write(Value, StringStyle.UCString);
+                        break;
+                    }
+                    if (HasAttribute(field, Const.PSTRING)) {
+                        Write(field, Value, StringStyle.PString);
+                        break;
+                    }
+                    if (HasAttribute(field, Const.FSTRING)) {
+                        byte[] Buffer = new byte[Tools.GetAttributePropertyValue(field, Const.FSTRING, "Length")];
+                        Encoding.GetBytes((string)Value).CopyTo(Buffer, 0);
+                        Write(Buffer);
+                        break;
+                    }
+                    throw new Exception("String Attribute Not Specified.");
+                default:
+                    if (HasAttribute(field, Const.STRUCT)) {
+                        WriteStruct(field.FieldType, ref Value);
+                    } else {
+                        if (field.FieldType.BaseType.ToString() == Const.DELEGATE) {
+                            FieldInvoke Invoker = ((FieldInvoke)Value);
+                            if (Invoker == null)
+                                break;
+                            Instance = Invoker.Invoke(BaseStream, false, Instance);
+                            field.SetValue(Instance, Invoker);
+                        } else if (BigEndian)
+                            Write(Tools.Reverse(Value));
+                        else
+                            Write(Value);
+                    }
+                    break;
+            }
+        }
 
         public void Write(string String, StringStyle Style) {
             switch (Style) {
@@ -322,7 +420,7 @@ namespace AdvancedBinary {
             }
         }
 
-        private void WritePString(FieldInfo Field, dynamic Value) {
+        internal void WritePString(FieldInfo Field, dynamic Value) {
             byte[] Arr = Encoding.GetBytes(Value);
 
             string Prefix = Tools.GetAttributePropertyValue(Field, Const.PSTRING, "PrefixType");
@@ -382,7 +480,7 @@ namespace AdvancedBinary {
             base.Write(Arr);
         }
 
-        private bool HasAttribute(FieldInfo Field, string Attrib) {
+        internal bool HasAttribute(FieldInfo Field, string Attrib) {
             foreach (Attribute attrib in Field.GetCustomAttributes(true))
                 if (attrib.GetType().Name == Attrib)
                     return true;
@@ -397,9 +495,15 @@ namespace AdvancedBinary {
 
     class StructReader : BinaryReader {
 
-        private bool BigEndian = false;
-        private Encoding Encoding;
+        internal bool BigEndian = false;
+        internal Encoding Encoding;
         public StructReader(Stream Input, bool BigEndian = false, Encoding Encoding = null) : base(Input) {
+            if (Encoding == null)
+                Encoding = Encoding.UTF8;
+            this.BigEndian = BigEndian;
+            this.Encoding = Encoding;
+        }
+        public StructReader(string Input, bool BigEndian = false, Encoding Encoding = null) : base(new StreamReader(Input).BaseStream) {
             if (Encoding == null)
                 Encoding = Encoding.UTF8;
             this.BigEndian = BigEndian;
@@ -413,94 +517,165 @@ namespace AdvancedBinary {
             Struct = (T)tmp;
         }
 
-        private void ReadStruct(Type type, ref object Instance) {
+        internal void ReadStruct(Type type, ref object Instance) {
             FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             for (int i = 0; i < fields.Length; i++) {
                 FieldInfo field = fields[i];
                 if (Tools.HasAttribute(field, Const.IGNORE))
                     continue;
+
+                string FType = field.FieldType.ToString();
                 dynamic Value = null;
-                bool IsNumber = true;
-                switch (field.FieldType.ToString()) {
-                    case Const.INT8:
-                        Value = base.ReadSByte();
-                        break;
-                    case Const.INT16:
-                        Value = base.ReadInt16();
-                        break;
-                    case Const.UINT16:
-                        Value = base.ReadUInt16();
-                        break;
-                    case Const.UINT8:
-                        Value = base.ReadByte();
-                        break;
-                    case Const.INT32:
-                        Value = base.ReadInt32();
-                        break;
-                    case Const.UINT32:
-                        Value = base.ReadUInt32();
-                        break;
-                    case Const.DOUBLE:
-                        Value = base.ReadDouble();
-                        break;
-                    case Const.FLOAT:
-                        Value = base.ReadSingle();
-                        break;
-                    case Const.INT64:
-                        Value = base.ReadInt64();
-                        break;
-                    case Const.UINT64:
-                        Value = base.ReadUInt64();
-                        break;
-                    case Const.STRING:
-                        IsNumber = false;
-                        if (Tools.HasAttribute(field, Const.CSTRING) && Tools.HasAttribute(field, Const.PSTRING))
-                            throw new Exception("You can't use CString and PString Attribute into the same field.");
-                        if (Tools.HasAttribute(field, Const.CSTRING)) {
-                            Value = ReadString(StringStyle.CString);
-                            break;
+
+                if (!FType.EndsWith("[]")) {
+                    Value = ReadField(FType, field, ref Instance);
+
+                } else {
+                    if (Tools.HasAttribute(field, Const.FARRAY)) {
+                        byte[] Buffer = new byte[Tools.GetAttributePropertyValue(field, Const.FARRAY, "Length")];
+
+                        if (Read(Buffer, 0, Buffer.Length) != Buffer.Length)
+                            throw new Exception("Failed to Read");
+
+                        Value = Buffer;
+
+                    } else if (Tools.HasAttribute(field, Const.PARRAY)) {
+                        FType = FType.Substring(0, FType.Length - 2);
+
+                        string PType = Tools.GetAttributePropertyValue(field, Const.PARRAY, "PrefixType");
+                        dynamic Count = ReadField(PType, field, ref Instance);
+
+                        Value = CreateArrayInstance(FType, Count);
+                        for (long x = 0; x < Count; x++) {
+                            Value[x] = ReadField(FType, field, ref Instance);
                         }
-                        if (Tools.HasAttribute(field, Const.UCSTRING)) {
-                            Value = ReadString(StringStyle.UCString);
-                            break;
-                        }
-                        if (Tools.HasAttribute(field, Const.PSTRING)) {
-                            Value = ReadString(StringStyle.PString, field);
-                            break;
-                        }
-                        if (Tools.HasAttribute(field, Const.FSTRING)) {
-                            byte[] Buffer = new byte[Tools.GetAttributePropertyValue(field, Const.FSTRING, "Length")];
-                            if (Read(Buffer, 0, Buffer.Length) != Buffer.Length)
-                                throw new Exception("Failed to Read a String");
-                            Value = Encoding.GetString(Buffer);
-                            break;
-                        }
-                        throw new Exception("String Attribute Not Specified.");
-                    default:
-                        IsNumber = false;
-                        if (Tools.HasAttribute(field, Const.STRUCT)) {
-                            Value = Activator.CreateInstance(field.FieldType);
-                            ReadStruct(field.FieldType, ref Value);
-                        } else {
-                            if (field.FieldType.BaseType.ToString() == Const.DELEGATE) {
-                                FieldInvoke Invoker = (FieldInvoke)field.GetValue(Instance);
-                                Value = Invoker;
-                                if (Invoker == null)
-                                    break;
-                                Instance = Invoker.Invoke(BaseStream, true, Instance);
-                                break;
-                            }
-                            throw new Exception("Unk Struct Field: " + field.FieldType.ToString());
-                        }
-                        break;
-                }
-                if (IsNumber && BigEndian) {
-                    Value = Tools.Reverse(Value);
-                }
+
+                    } else
+                        throw new Exception("Bad Struct Configuration");
+                }                
+
                 field.SetValue(Instance, Value);
             }
         }
 
+        internal dynamic CreateArrayInstance(string TypeName, dynamic InitialLength) {/*
+            switch (TypeName) {
+                case Const.INT8:
+                    return new sbyte[InitialLength];
+                case Const.UINT8:
+                    return new byte[InitialLength];
+                case Const.INT16:
+                    return new short[InitialLength];
+                case Const.UINT16:
+                    return new ushort[InitialLength];
+                case Const.INT32:
+                    return new int[InitialLength];
+                case Const.UINT32:
+                    return new uint[InitialLength];
+                case Const.INT64:
+                    return new long[InitialLength];
+                case Const.UINT64:
+                    return new ulong[InitialLength];
+                case Const.DOUBLE:
+                    return new double[InitialLength];
+                case Const.FLOAT:
+                    return new float[InitialLength];
+                case Const.STRING:
+                    return new string[InitialLength];
+                default:
+                    throw new Exception("Unk Variable Type");
+            }*/
+			Type ArrType = Type.GetType(TypeName);
+			return Array.CreateInstance(ArrType, InitialLength);
+			/*
+            Type stringArrayType = Type.GetType(TypeName).MakeArrayType();
+            return Activator.CreateInstance(stringArrayType, new object[] { InitialLength });*/
+        }
+
+        internal dynamic ReadField(string Type, FieldInfo field, ref object Instance) {
+            bool IsNumber = true;
+            dynamic Value = null;
+            switch (Type) {
+                case Const.INT8:
+                    Value = base.ReadSByte();
+                    break;
+                case Const.INT16:
+                    Value = base.ReadInt16();
+                    break;
+                case Const.CHAR:
+                    Value = base.ReadChar();
+                    break;
+                case Const.UINT16:
+                    Value = base.ReadUInt16();
+                    break;
+                case Const.UINT8:
+                    Value = base.ReadByte();
+                    break;
+                case Const.INT32:
+                    Value = base.ReadInt32();
+                    break;
+                case Const.UINT32:
+                    Value = base.ReadUInt32();
+                    break;
+                case Const.DOUBLE:
+                    Value = base.ReadDouble();
+                    break;
+                case Const.FLOAT:
+                    Value = base.ReadSingle();
+                    break;
+                case Const.INT64:
+                    Value = base.ReadInt64();
+                    break;
+                case Const.UINT64:
+                    Value = base.ReadUInt64();
+                    break;
+                case Const.STRING:
+                    IsNumber = false;
+                    if (Tools.HasAttribute(field, Const.CSTRING) && Tools.HasAttribute(field, Const.PSTRING))
+                        throw new Exception("You can't use CString and PString Attribute into the same field.");
+                    if (Tools.HasAttribute(field, Const.CSTRING)) {
+                        Value = ReadString(StringStyle.CString);
+                        break;
+                    }
+                    if (Tools.HasAttribute(field, Const.UCSTRING)) {
+                        Value = ReadString(StringStyle.UCString);
+                        break;
+                    }
+                    if (Tools.HasAttribute(field, Const.PSTRING)) {
+                        Value = ReadString(StringStyle.PString, field);
+                        break;
+                    }
+                    if (Tools.HasAttribute(field, Const.FSTRING)) {
+                        byte[] Bffr = new byte[Tools.GetAttributePropertyValue(field, Const.FSTRING, "Length")];
+                        if (Read(Bffr, 0, Bffr.Length) != Bffr.Length)
+                            throw new Exception("Failed to Read a String");
+                        Value = Encoding.GetString(Bffr);
+                        break;
+                    }
+                    throw new Exception("String Attribute Not Specified.");
+                default:
+                    IsNumber = false;
+                    if (Tools.HasAttribute(field, Const.STRUCT)) {
+                        Value = Activator.CreateInstance(field.FieldType);
+                        ReadStruct(field.FieldType, ref Value);
+                    } else {
+                        if (field.FieldType.BaseType.ToString() == Const.DELEGATE) {
+                            FieldInvoke Invoker = (FieldInvoke)field.GetValue(Instance);
+                            Value = Invoker;
+                            if (Invoker == null)
+                                break;
+                            Instance = Invoker.Invoke(BaseStream, true, Instance);
+                            break;
+                        }
+                        throw new Exception("Unk Struct Field: " + field.FieldType.ToString());
+                    }
+                    break;
+            }
+            if (IsNumber && BigEndian) {
+                Value = Tools.Reverse(Value);
+            }
+            return Value;
+        }
 
         public string ReadString(StringStyle Style, FieldInfo Info = null) {
             List<byte> Buffer = new List<byte>();
@@ -598,6 +773,13 @@ namespace AdvancedBinary {
             int b = BaseStream.ReadByte();
             BaseStream.Position--;
             return b;
+        }
+
+        internal int PeekInt() {
+            byte[] Buff = new byte[4];
+            int i = BaseStream.Read(Buff, 0, Buff.Length);
+            BaseStream.Position -= i;
+            return BitConverter.ToInt32(Buff, 0);
         }
     }
 }
