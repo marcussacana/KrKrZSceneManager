@@ -77,9 +77,11 @@ namespace KrKrSceneManager {
         public byte[] Export(string[] Strings) {
             if (Strings.Length != StrCount)
                 throw new Exception("You can't add or remove a string entry");
-
-            BuildStringData(Strings, out byte[] StringData, out int[] Offsets);
-            BuildOffsetTable(Offsets, out byte[] OffsetData);
+			
+			int[] Offsets;
+			byte[] StringData, OffsetData;
+            BuildStringData(Strings, out StringData, out Offsets);
+            BuildOffsetTable(Offsets, out OffsetData);
 
             int OffTblDiff = OffsetData.Length - OldOffTblLen;
             int StrDatDiff = StringData.Length - OldStrDatLen;
