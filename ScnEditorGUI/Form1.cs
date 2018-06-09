@@ -35,6 +35,12 @@ namespace ScnEditorGUI {
                 foreach (string str in SCN.Import()) {
                     listBox1.Items.Add(str);
                 }
+                if (SCN.UnkOpCodes) {
+                    MessageBox.Show("Maybe the reoder is wrong... try create a issue");
+                }
+                if (SCN.HaveEmbedded) {
+                    MessageBox.Show("Looks this psb contains a Embedded File, try open as .pimg");
+                }
             }
         }
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e) {

@@ -1,16 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace KrKrSceneManager {
+
+    /// <summary>
+    /// A Proxy to the StringManager that tries desort the stirng order.
+    /// </summary>
     public class PSBAnalyzer {
+        bool Warning = false;
+        bool EmbeddedReferenced = false;
+
+        /// <summary>
+        /// Says if he analyzer found a unk opcode
+        /// </summary>
+        public bool UnkOpCodes {
+            get {
+                return Warning;
+            }
+        }
+
+        /// <summary>
+        /// Says if the analyzer found a Embedded content in this PSB
+        /// </summary>
+        public bool HaveEmbedded {
+            get {
+                return EmbeddedReferenced;
+            }
+
+        }
 
         public bool ExtendStringLimit = true;
         public bool CompressPackget = true;
         public int CompressionLevel = 9;
 
-        const uint ByteCodeStart = 0x28;
+        uint ByteCodeStart;
         uint ByteCodeLen = 0;
         string[] Strings;
         byte[] Script;
@@ -22,26 +45,28 @@ namespace KrKrSceneManager {
                 CompressPackget = true,
                 ForceMaxOffsetLength = ExtendStringLimit
             };
-            if (PSBStrMan.GetPackgetStatus(Script) == PSBStrMan.PackgetStatus.MDF)
-                this.Script = PSBStrMan.ExtractMDF(Script);
 
-            ByteCodeLen = ReadOffset(this.Script, 0x10, 4) - ByteCodeStart;
+            if (PSBStrMan.GetPackgetStatus(Script) == PSBStrMan.PackgetStatus.MDF)
+                Script = PSBStrMan.ExtractMDF(Script);
+
+            ByteCodeStart = ReadOffset(Script, 0x24, 4);
+            ByteCodeLen   = ReadOffset(Script, 0x10, 4) - ByteCodeStart;
         }
 
         public string[] Import() {
+            EmbeddedReferenced = false;
+            Warning = false;
+
             Calls = new List<uint>();
             Strings = StringManager.Import();
-            bool Recognized = true;
             for (uint i = ByteCodeStart; i < ByteCodeLen + ByteCodeStart; ) {
-                long Result = TryAnaylze(Script, ref i, Recognized);
-                if (Result < 0) {
-                    Recognized = Result != -2;
-                    continue;
-                }
+                try {
+                    var Result = Analyze(Script, ref i);
 
-
-                if (!Calls.Contains((uint)Result) && Result < Strings.LongLength)
-                    Calls.Add((uint)Result);
+                    foreach (uint ID in Result)
+                        if (ID < Strings.LongLength && !Calls.Contains(ID))
+                            Calls.Add(ID);
+                } catch { }
             }
 
             //Prevent Missmatch
@@ -53,7 +78,10 @@ namespace KrKrSceneManager {
         }
 
         public byte[] Export(string[] Strings) {
-            string[] Content = Sort(Strings, Calls.ToArray());
+            string[] Content = Desort(Strings, Calls.ToArray());
+
+            StringManager.CompressPackget = CompressPackget;
+            PSBStrMan.CompressionLevel = CompressionLevel;
 
             return StringManager.Export(Content);
         }
@@ -85,168 +113,118 @@ namespace KrKrSceneManager {
         }
 
         //Here a shit sample how to detect the string order, now plz, don't send-me more emails about this.
-        private long TryAnaylze(byte[] Script, ref uint Index, bool Recognized) {
+        private uint[] Analyze(byte[] Script, ref uint Index) {
             byte Cmd = Script[Index];
 
-            long ID = -1;
+            uint ID = 0;
+            List<uint> IDs = new List<uint>();
             switch (Cmd) {
-                //Enums
+                //Strings - Hay \o/
+                case 0x15:
+                    IDs.Add(ReadOffset(Script, Index + 1, 1));
+                    Index += 2;
+                    break;
+                case 0x16:
+                    IDs.Add(ReadOffset(Script, Index + 1, 2));
+                    Index += 3;
+                    break;
+                case 0x17:
+                    IDs.Add(ReadOffset(Script, Index + 1, 3));
+                    Index += 4;
+                    break;
+                case 0x18:
+                    IDs.Add(ReadOffset(Script, Index + 1, 4));
+                    Index += 5;
+                    break;
+
+                //Numbers
+                case 0x4:
+                case 0x5:
+                case 0x6:
+                case 0x7:
+                case 0x8:
+                case 0x9:
+                case 0xA:
+                case 0xB:
+                case 0xC:
+                    Index++;
+                    Index += (uint)Cmd - 0x4;
+                    break;
+
+                case 0x1D:
+                    Index++;
+                    break;
+                case 0x1E:
+                    Index++;
+                    Index += 4;
+                    break;
+                case 0x1F:
+                    Index++;
+                    Index += 8;
+                    break;
+
+                //Constants
                 case 0x0:
                 case 0x1:
                 case 0x2:
                 case 0x3:
-                case 0x4:
-                case 0x1D:
                     Index++;
-                    return -1;
+                    break;
 
-                //Unks
-                default:
-                    Index++;
-                    return -2;
-                    
-                //Ints
-                case 0x5:
-                    Index += 2;
-                    return -1;
-                case 0x6:
-                    Index += 3;
-                    return -1;
-                case 0x7:
-                    Index += 4;
-                    return -1;
-                case 0x8:
-                    if (!Recognized)
-                        goto default;
-                    Index += 5;
-                    return -1;
-                case 0x9:
-                    if (!Recognized)
-                        goto default;
-                    Index += 6;
-                    return -1;
-                case 0xA:
-                    if (!Recognized)
-                        goto default;
-                    Index += 7;
-                    return -1;
-                case 0xB:
-                    if (!Recognized)
-                        goto default;
-                    Index += 8;
-                    return -1;
-                case 0xC:
-                    if (!Recognized)
-                        goto default;
-                    Index += 9;
-                    return -1;
-
-                //Array
-                case 0xD:
-                    Index += 2;
-                    return -1;
-                case 0xE:
-                    Index += 3;
-                    return -1;
-                case 0xF:
-                    Index += 4;
-                    return -1;
+                //Arrays
+                case 0x0D:
+                case 0x0E:
+                case 0x0F:
                 case 0x10:
-                    if (!Recognized)
-                        goto default;
-                    Index += 5;
-                    return -1;
                 case 0x11:
-                    if (!Recognized)
-                        goto default;
-                    Index += 6;
-                    return -1;
                 case 0x12:
-                    if (!Recognized)
-                        goto default;
-                    Index += 7;
-                    return -1;
                 case 0x13:
-                    if (!Recognized)
-                        goto default;
-                    Index += 8;
-                    return -1;
                 case 0x14:
-                    if (!Recognized)
-                        goto default;
-                    Index += 9;
-                    return -1;
+                    Index++;
+                    uint CLen = (uint)Cmd - 0xC;
+                    uint Count = ReadOffset(Script, Index, CLen);
+                    Index += CLen;
 
-                //Resource
+                    uint ELen = (uint)Script[Index++] - 0xC;
+                    Index += ELen * Count;
+
+                    break;
+
+                case 0x20:
+                    Index++;
+                    IDs.AddRange(Analyze(Script, ref Index));
+                    break;
+
+                case 0x21:
+                    Index++;
+                    IDs.AddRange(Analyze(Script, ref Index));
+                    IDs.AddRange(Analyze(Script, ref Index));
+                    break;
+
+                //References to the Embedded Content
                 case 0x19:
-                    Index += 2;
-                    return -1;
                 case 0x1A:
-                    Index += 3;
-                    return -1;
                 case 0x1B:
-                    Index += 4;
-                    return -1;
                 case 0x1C:
-                    if (!Recognized)
-                        goto default;
-                    Index += 5;
-                    return -1;
+                    EmbeddedReferenced = true;
+                    Index++;
+                    Index += (uint)Cmd - 0x18;
+                    break;
 
-                //Decimals
-                case 0x1E:
-                    if (!Recognized)
-                        goto default;
-                    Index += 5;
-                    return -1;
-                case 0x1F:
-                    if (!Recognized)
-                        goto default;
-                    Index += 9;
-                    return -1;
-                
-
-                //Strings - Hay \o/
-                case 0x15:
-                    if (!Recognized)
-                        goto default;
-                    ID = ReadOffset(Script, Index + 1, 1);
-                    if (ID >= Strings.LongLength)
-                        goto default;
-                    Index += 2;
-                    return ID;
-                case 0x16:
-                    if (!Recognized)
-                        goto default;
-                    ID = ReadOffset(Script, Index + 1, 2);
-                    if (ID >= Strings.LongLength)
-                        goto default;
-                    Index += 3;
-                    return ID;
-                case 0x17:
-                    if (!Recognized)
-                        goto default;
-                    ID = ReadOffset(Script, Index + 1, 3);
-                    if (ID >= Strings.LongLength)
-                        goto default;
-                    Index += 4;
-                    return ID;
-                case 0x18:
-                    if (!Recognized)
-                        goto default;
-                    ID = ReadOffset(Script, Index + 1, 4);
-                    if (ID >= Strings.LongLength)
-                        goto default;
-                    Index += 5;
-                    return ID;
+                //Fuck
+                default:
+                    Warning = true;
+                    Index++;
+                    break;
             }
-            
+
+            return IDs.ToArray();
         }
 
         internal static uint ReadOffset(byte[] Script, uint Index, uint Length) {
-            byte[] Value = new byte[4];
+            byte[] Value = new byte[8];
             Array.Copy(Script, Index, Value, 0, Length);
-            return BitConverter.ToUInt32(Value, 0);
+            return (uint)BitConverter.ToUInt64(Value, 0);//.Net Only works with array of Int.MaxValue of Length;
         }
     }
 }

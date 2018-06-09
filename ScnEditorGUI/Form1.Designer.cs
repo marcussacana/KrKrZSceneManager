@@ -79,19 +79,19 @@
             this.tJS2ToolStripMenuItem,
             this.ClipboardSeekSample});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(154, 136);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(181, 158);
             // 
             // openFileToolStripMenuItem
             // 
             this.openFileToolStripMenuItem.Name = "openFileToolStripMenuItem";
-            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            this.openFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.openFileToolStripMenuItem.Text = "Open File";
             this.openFileToolStripMenuItem.Click += new System.EventHandler(this.openFileToolStripMenuItem_Click);
             // 
             // saveFileToolStripMenuItem
             // 
             this.saveFileToolStripMenuItem.Name = "saveFileToolStripMenuItem";
-            this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            this.saveFileToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.saveFileToolStripMenuItem.Text = "Save File";
             this.saveFileToolStripMenuItem.Click += new System.EventHandler(this.saveFileToolStripMenuItem_Click);
             // 
@@ -101,27 +101,27 @@
             this.decompressImageToolStripMenuItem,
             this.compressImageToolStripMenuItem});
             this.huffmanToolStripMenuItem.Name = "huffmanToolStripMenuItem";
-            this.huffmanToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
-            this.huffmanToolStripMenuItem.Text = "Huffman";
+            this.huffmanToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.huffmanToolStripMenuItem.Text = "Compress";
             // 
             // decompressImageToolStripMenuItem
             // 
             this.decompressImageToolStripMenuItem.Name = "decompressImageToolStripMenuItem";
-            this.decompressImageToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
+            this.decompressImageToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.decompressImageToolStripMenuItem.Text = "Decompress Image";
             this.decompressImageToolStripMenuItem.Click += new System.EventHandler(this.decompressImageToolStripMenuItem_Click);
             // 
             // compressImageToolStripMenuItem
             // 
             this.compressImageToolStripMenuItem.Name = "compressImageToolStripMenuItem";
-            this.compressImageToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
+            this.compressImageToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.compressImageToolStripMenuItem.Text = "Compress Image";
             this.compressImageToolStripMenuItem.Click += new System.EventHandler(this.compressImageToolStripMenuItem_Click);
             // 
             // tryRecoveryToolStripMenuItem
             // 
             this.tryRecoveryToolStripMenuItem.Name = "tryRecoveryToolStripMenuItem";
-            this.tryRecoveryToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            this.tryRecoveryToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.tryRecoveryToolStripMenuItem.Text = "Try Recovery";
             this.tryRecoveryToolStripMenuItem.Click += new System.EventHandler(this.tryRecoveryToolStripMenuItem_Click);
             // 
@@ -131,20 +131,20 @@
             this.openToolStripMenuItem,
             this.saveToolStripMenuItem});
             this.tJS2ToolStripMenuItem.Name = "tJS2ToolStripMenuItem";
-            this.tJS2ToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            this.tJS2ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.tJS2ToolStripMenuItem.Text = "TJS2";
             // 
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.openToolStripMenuItem.Text = "Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
             // saveToolStripMenuItem
             // 
             this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
-            this.saveToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
+            this.saveToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.saveToolStripMenuItem.Text = "Save";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             // 
@@ -154,7 +154,7 @@
             this.ClipboardSeekSample.CheckOnClick = true;
             this.ClipboardSeekSample.CheckState = System.Windows.Forms.CheckState.Checked;
             this.ClipboardSeekSample.Name = "ClipboardSeekSample";
-            this.ClipboardSeekSample.Size = new System.Drawing.Size(153, 22);
+            this.ClipboardSeekSample.Size = new System.Drawing.Size(180, 22);
             this.ClipboardSeekSample.Text = "Seek Clipboard";
             this.ClipboardSeekSample.Click += new System.EventHandler(this.ClipboardSeekSample_Click);
             // 

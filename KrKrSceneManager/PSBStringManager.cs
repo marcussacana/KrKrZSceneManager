@@ -1,17 +1,15 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using System.Linq;
 using System.Collections.Generic;
 using AdvancedBinary;
 
 /*
- * KrKrSceneManager (5.0) By Marcussacana
+ * KrKrSceneManager (5.6) By Marcussacana
  * Usage:
  * byte[] input = File.ReadAllBytes("C:\\sample.bin");
  * PSBStringManager StrMan = new PSBStringManager(input);
- * StrMan.Import();
- * string[] scncontent = StrMan.Strigs; 
+ * string[] scncontent = StrMan.Import(); 
  * ...
  * //save
  * byte[] output = StrMan.Export(scncontent);
