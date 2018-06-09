@@ -123,7 +123,6 @@ namespace KrKrSceneManager {
             UpdateOffset(ref Header.ResDataPos, Header.StrDataPos, StrDatDiff);
             UpdateOffset(ref Header.ResLenPos, Header.StrDataPos, StrDatDiff);
             UpdateOffset(ref Header.ResIndexTree, Header.StrDataPos, StrDatDiff);
-            UpdateOffset(ref Header.StrOffPos, Header.StrDataPos, StrDatDiff);
         }
 
         private void UpdateOffset(ref uint Offset, uint ChangeBaseOffset, int Diff) {

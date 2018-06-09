@@ -78,7 +78,7 @@ namespace KrKrSceneManager {
         }
 
         public byte[] Export(string[] Strings) {
-            string[] Content = Desort(Strings, Calls.ToArray());
+            string[] Content = Sort(Strings, Calls.ToArray());
 
             StringManager.CompressPackget = CompressPackget;
             PSBStrMan.CompressionLevel = CompressionLevel;
