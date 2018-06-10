@@ -26,6 +26,7 @@ namespace KrKrSceneManager {
             PSBStrMan.PackgetStatus Status = PSBStrMan.GetPackgetStatus(script);
             if (Status == PSBStrMan.PackgetStatus.MDF)
                 script = PSBStrMan.ExtractMDF(script);
+            Status = PSBStrMan.GetPackgetStatus(script);
             if (Status != PSBStrMan.PackgetStatus.PSB)
                 throw new Exception("Bad File Format");
 
@@ -98,7 +99,7 @@ namespace KrKrSceneManager {
             byte[] ResultPackget = new byte[MainData.Length + ResTable.Length];
             MainData.CopyTo(ResultPackget, 0);
             ResTable.CopyTo(ResultPackget, MainData.Length);
-            return (CompressPackget) ? PSBStrMan.CompressMDF(ResultPackget) : ResultPackget;
+            return CompressPackget ? PSBStrMan.CompressMDF(ResultPackget) : ResultPackget;
         }
         private byte[] CutAt(byte[] Original, int Pos) {
             byte[] rst = new byte[Pos];

@@ -40,17 +40,26 @@ namespace KrKrSceneManager {
         PSBStrMan StringManager;
         List<uint> Calls = new List<uint>();
         public PSBAnalyzer(byte[] Script) {
-            this.Script = Script;
+            var Status = PSBStrMan.GetPackgetStatus(Script);
+            if (Status == PSBStrMan.PackgetStatus.MDF)
+                Script = PSBStrMan.ExtractMDF(Script);
+            Status = PSBStrMan.GetPackgetStatus(Script);
+            if (Status != PSBStrMan.PackgetStatus.PSB)
+                throw new Exception("Bad File Format");
+
+            this.Script = new byte[Script.Length];
+            Script.CopyTo(this.Script, 0);
+
             StringManager = new PSBStrMan(Script) {
                 CompressPackget = true,
                 ForceMaxOffsetLength = ExtendStringLimit
             };
 
-            if (PSBStrMan.GetPackgetStatus(Script) == PSBStrMan.PackgetStatus.MDF)
-                Script = PSBStrMan.ExtractMDF(Script);
+            ByteCodeStart = ReadOffset(this.Script, 0x24, 4);
+            ByteCodeLen   = ReadOffset(this.Script, 0x10, 4) - ByteCodeStart;
 
-            ByteCodeStart = ReadOffset(Script, 0x24, 4);
-            ByteCodeLen   = ReadOffset(Script, 0x10, 4) - ByteCodeStart;
+            if (ByteCodeLen + ByteCodeStart > Script.Length)
+                throw new Exception("Corrupted Script");
         }
 
         public string[] Import() {

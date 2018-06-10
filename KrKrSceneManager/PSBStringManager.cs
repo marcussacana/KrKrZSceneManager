@@ -30,7 +30,8 @@ namespace KrKrSceneManager {
         private int OldStrDatLen;//Old String Data Length
         private PSBHeader Header;
         public PSBStrMan(byte[] Script) {
-            this.Script = Script;
+            this.Script = new byte[Script.Length];
+            Script.CopyTo(this.Script, 0);
         }
         public string[] Import() {
             PackgetStatus Status = GetPackgetStatus(Script);
@@ -234,7 +235,7 @@ namespace KrKrSceneManager {
             }
             throw new Exception("Unknow Offset Size");
         }
-        internal static byte[] ExtractMDF(byte[] MDF) {
+        public static byte[] ExtractMDF(byte[] MDF) {
             byte[] Zlib = new byte[MDF.Length - 8];
             Array.Copy(MDF, 8, Zlib, 0, MDF.Length - 8);
 

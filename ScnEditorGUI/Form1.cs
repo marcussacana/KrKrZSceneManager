@@ -285,5 +285,15 @@ namespace ScnEditorGUI {
             "～", "~", "―", "-", "%K", "%LC", "♪", "%P", "%f;",
             "%fSourceHanSansCN-M;", "[―]"
         };
+
+        private void decompressScriptToolStripMenuItem_Click(object sender, EventArgs e) {
+            OpenFileDialog fd = new OpenFileDialog();
+            fd.FileName = "All PSB Files|*.psb;*.scn;*.pimg";
+            if (fd.ShowDialog() != DialogResult.OK)
+                return;
+            byte[] Content = System.IO.File.ReadAllBytes(fd.FileName);
+            System.IO.File.WriteAllBytes(fd.FileName, PSBStrMan.ExtractMDF(Content));
+            MessageBox.Show("Finished");
+        }
     }
 }

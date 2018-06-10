@@ -43,6 +43,7 @@
             this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ClipboardSeekSample = new System.Windows.Forms.ToolStripMenuItem();
             this.SeekUpdate = new System.Windows.Forms.Timer(this.components);
+            this.decompressScriptToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -99,7 +100,8 @@
             // 
             this.huffmanToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.decompressImageToolStripMenuItem,
-            this.compressImageToolStripMenuItem});
+            this.compressImageToolStripMenuItem,
+            this.decompressScriptToolStripMenuItem});
             this.huffmanToolStripMenuItem.Name = "huffmanToolStripMenuItem";
             this.huffmanToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.huffmanToolStripMenuItem.Text = "Compress";
@@ -137,14 +139,14 @@
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
             this.openToolStripMenuItem.Text = "Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
             // saveToolStripMenuItem
             // 
             this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
-            this.saveToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.saveToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
             this.saveToolStripMenuItem.Text = "Save";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             // 
@@ -163,6 +165,13 @@
             this.SeekUpdate.Enabled = true;
             this.SeekUpdate.Interval = 500;
             this.SeekUpdate.Tick += new System.EventHandler(this.SeekUpdate_Tick);
+            // 
+            // decompressScriptToolStripMenuItem
+            // 
+            this.decompressScriptToolStripMenuItem.Name = "decompressScriptToolStripMenuItem";
+            this.decompressScriptToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.decompressScriptToolStripMenuItem.Text = "Decompress Script";
+            this.decompressScriptToolStripMenuItem.Click += new System.EventHandler(this.decompressScriptToolStripMenuItem_Click);
             // 
             // Form1
             // 
@@ -196,6 +205,7 @@
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem ClipboardSeekSample;
         private System.Windows.Forms.Timer SeekUpdate;
+        private System.Windows.Forms.ToolStripMenuItem decompressScriptToolStripMenuItem;
     }
 }
 
