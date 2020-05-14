@@ -44,33 +44,28 @@ namespace KrKrSceneManager {
                     break;
             }
 
-            MemoryStream In = new MemoryStream(Script);
+            MemoryStream Reader = new MemoryStream(Script);
             Header = new PSBHeader();
-            StructReader Reader = new StructReader(In);
-            Reader.ReadStruct(ref Header);
+            Header = Reader.ReadStruct<PSBHeader>();
 
-            Reader.BaseStream.Position = Header.StrOffPos;
-            Console.WriteLine("Reading Pos: " + Reader.BaseStream.Position);
+            Reader.Position = Header.StrOffPos;
             OffLength = ConvertSize(Reader.ReadByte());
             StrCount = ReadOffset(Reader.ReadBytes(OffLength), 0, OffLength);
-            Console.WriteLine("Reading Pos: " + Reader.BaseStream.Position);
             OffLength = ConvertSize(Reader.ReadByte());
 
             int[] Offsets = new int[StrCount];
             for (int i = 0; i < StrCount; i++)
                 Offsets[i] = ReadOffset(Reader.ReadBytes(OffLength), 0, OffLength);
 
-            OldOffTblLen = (int)(Reader.BaseStream.Position - Header.StrOffPos);
+            OldOffTblLen = (int)(Reader.Position - Header.StrOffPos);
 
             string[] Strings = new string[StrCount];
             for (int i = 0; i < StrCount; i++) {
-                Reader.BaseStream.Position = Header.StrDataPos + Offsets[i];
-                StrEntry Entry = new StrEntry();
-                Reader.ReadStruct(ref Entry);
-                Strings[i] = Entry.Content;
+                Reader.Position = Header.StrDataPos + Offsets[i];
+                Strings[i] = Reader.ReadCString();
             }
 
-            OldStrDatLen = (int)(Reader.BaseStream.Position - Header.StrDataPos);
+            OldStrDatLen = (int)(Reader.Position - Header.StrDataPos);
 
             Reader.Close();
             return Strings;
@@ -86,18 +81,17 @@ namespace KrKrSceneManager {
 
             int OffTblDiff = OffsetData.Length - OldOffTblLen;
             int StrDatDiff = StringData.Length - OldStrDatLen;
-            PSBHeader Header = new PSBHeader();
-            AdvancedBinary.Tools.CopyStruct(this.Header, ref Header);
+            PSBHeader Header = this.Header;
             
             UpdateOffsets(ref Header, OffTblDiff, StrDatDiff);
 
             byte[] OutScript = new byte[Script.Length];
             Script.CopyTo(OutScript, 0);
 
-            OverwriteRange(ref OutScript, this.Header.StrOffPos, OldOffTblLen, OffsetData);
+            OverwriteRange(ref OutScript, Header.StrOffPos, OldOffTblLen, OffsetData);
             OverwriteRange(ref OutScript, Header.StrDataPos, OldStrDatLen, StringData);
 
-            AdvancedBinary.Tools.BuildStruct(ref Header).CopyTo(OutScript, 0);
+            Header.ParseStruct().CopyTo(OutScript, 0);
 
             return CompressPackget ? CompressMDF(OutScript) : OutScript;
         }
@@ -136,23 +130,19 @@ namespace KrKrSceneManager {
 
         private void BuildStringData(string[] Strings, out byte[] StringTable, out int[] Offsets) {
             Offsets = new int[StrCount];
-            MemoryStream StrData = new MemoryStream();
-            StructWriter Writer = new StructWriter(StrData);
+            MemoryStream Writer = new MemoryStream();
 
             for (int i = 0; i < StrCount; i++) {
-                Offsets[i] = (int)Writer.BaseStream.Length;
-                StrEntry Entry = new StrEntry();
-                Entry.Content = Strings[i];
-                Writer.WriteStruct(ref Entry);
+                Offsets[i] = (int)Writer.Length;
+                Writer.WriteCString(Strings[i]);
             }
-            StringTable = StrData.ToArray();
+            StringTable = Writer.ToArray();
             Writer.Close();
-            StrData?.Close();
         }
 
         private void BuildOffsetTable(int[] Offsets, out byte[] OffsetData) {
             MemoryStream OffData = new MemoryStream();
-            StructWriter Writer = new StructWriter(OffData);
+            BinaryWriter Writer = new BinaryWriter(OffData);
 
             //Offset Count
             int OffsetSize = ForceMaxOffsetLength ? 4 : GetMinIntLen(StrCount);
@@ -169,16 +159,6 @@ namespace KrKrSceneManager {
             OffsetData = OffData.ToArray();
             Writer.Close();
             OffData?.Close();
-        }
-
-
-        private bool EqualsAt(byte[] data, byte[] CompareData, int pos) {
-            if (CompareData.Length + pos > data.Length)
-                return false;
-            for (int i = 0; i < CompareData.Length; i++)
-                if (data[i + pos] != CompareData[i])
-                    return false;
-            return true;
         }
 
         internal static byte[] CompressMDF(byte[] psb) {
