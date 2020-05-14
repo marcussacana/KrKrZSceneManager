@@ -50,8 +50,10 @@ namespace KrKrSceneManager {
             Reader.ReadStruct(ref Header);
 
             Reader.BaseStream.Position = Header.StrOffPos;
+            Console.WriteLine("Reading Pos: " + Reader.BaseStream.Position);
             OffLength = ConvertSize(Reader.ReadByte());
             StrCount = ReadOffset(Reader.ReadBytes(OffLength), 0, OffLength);
+            Console.WriteLine("Reading Pos: " + Reader.BaseStream.Position);
             OffLength = ConvertSize(Reader.ReadByte());
 
             int[] Offsets = new int[StrCount];
@@ -220,7 +222,7 @@ namespace KrKrSceneManager {
                 case 4:
                     return 0x10;
             }
-            throw new Exception("Unknow Offset Size");
+            throw new Exception("Unknown Offset Size ("+s+")");
         }
         internal static int ConvertSize(byte b) {
             switch (b) {
@@ -233,7 +235,7 @@ namespace KrKrSceneManager {
                 case 0x10:
                     return 4;
             }
-            throw new Exception("Unknow Offset Size");
+            throw new Exception("Unknown Offset Size (" + b.ToString("X2") + ")");
         }
         public static byte[] ExtractMDF(byte[] MDF) {
             byte[] Zlib = new byte[MDF.Length - 8];

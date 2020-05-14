@@ -2,7 +2,7 @@
 using System.Text;
 using System.IO;
 
-namespace ComponentAce.Compression.Libs.ZLib
+namespace KrKrSceneManager
 {
     /// <summary>
     /// Compression directions: compression or decompression. This enumeration is used to specify the direction of compression for the <see cref="ZLibStream" />.
@@ -111,7 +111,7 @@ namespace ComponentAce.Compression.Libs.ZLib
         /// <summary>
         /// Compression level
         /// </summary>
-        private int compLevel = (int)ZLibCompressionLevel.Z_DEFAULT_COMPRESSION;
+        private int compLevel = 9;
 
         /// <summary>
         /// True if we need to leave the underlying stream open when closing the current stream
