@@ -76,7 +76,6 @@ namespace KrKrSceneManager {
 
         public static T ReadStruct<T>(this Stream Stream) where T : struct {
             byte[] Buffer = Stream.ReadBytes(Marshal.SizeOf(typeof(T)));
-            Stream.Read(Buffer, 0, Buffer.Length);
             return ParseStruct<T>(Buffer);
         }
 

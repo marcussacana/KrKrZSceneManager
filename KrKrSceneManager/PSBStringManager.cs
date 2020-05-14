@@ -49,9 +49,9 @@ namespace KrKrSceneManager {
             Header = Reader.ReadStruct<PSBHeader>();
 
             Reader.Position = Header.StrOffPos;
-            OffLength = ConvertSize(Reader.ReadByte());
+            OffLength = ConvertSize((byte)Reader.ReadByte());
             StrCount = ReadOffset(Reader.ReadBytes(OffLength), 0, OffLength);
-            OffLength = ConvertSize(Reader.ReadByte());
+            OffLength = ConvertSize((byte)Reader.ReadByte());
 
             int[] Offsets = new int[StrCount];
             for (int i = 0; i < StrCount; i++)
