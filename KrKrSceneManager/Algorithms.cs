@@ -66,7 +66,7 @@ namespace KrKrSceneManager {
         public static byte[] ReadBytes(this Stream Stream, int Count) {
             byte[] Buffer = new byte[Count];
             if (Stream.Read(Buffer, 0, Buffer.Length) != Count)
-                throw new InternalBufferOverflowException();
+                throw new Exception("Buffer Overflow Exception");
             return Buffer;
         }
         public static void WriteBytes(this Stream Stream, byte[] Data)
