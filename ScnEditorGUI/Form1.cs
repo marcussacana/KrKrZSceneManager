@@ -77,7 +77,7 @@ namespace ScnEditorGUI {
                         Strings[i] = listBox1.Items[i].ToString();
                     }
                     dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nDoes not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    SCN.CompressPackget = dr == DialogResult.Yes;
+                    SCN.CompressPackage = dr == DialogResult.Yes;
                     PSBStrMan.CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
                     byte[] outfile = SCN.Export(Strings);
                     System.IO.File.WriteAllBytes(save.FileName, outfile);
