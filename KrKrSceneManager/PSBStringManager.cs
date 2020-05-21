@@ -20,7 +20,7 @@ using AdvancedBinary;
 namespace KrKrSceneManager {
     public class PSBStrMan {  
         
-        public bool CompressPackage = false;
+        public bool CompressPackage = true;
         public static int CompressionLevel = 9;
         public bool ForceMaxOffsetLength = false;
 

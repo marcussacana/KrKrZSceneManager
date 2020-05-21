@@ -30,7 +30,7 @@ namespace KrKrSceneManager {
         }
 
         public bool ExtendStringLimit = true;
-        public bool CompressPackget = true;
+        public bool CompressPackage = true;
         public int CompressionLevel = 9;
 
         uint ByteCodeStart;
@@ -89,7 +89,7 @@ namespace KrKrSceneManager {
         public byte[] Export(string[] Strings) {
             string[] Content = Sort(Strings, Calls.ToArray());
 
-            StringManager.CompressPackage = CompressPackget;
+            StringManager.CompressPackage = CompressPackage;
             PSBStrMan.CompressionLevel = CompressionLevel;
 
             return StringManager.Export(Content);
