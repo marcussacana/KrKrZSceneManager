@@ -51,7 +51,7 @@ namespace KrKrSceneManager {
             Script.CopyTo(this.Script, 0);
 
             StringManager = new PSBStrMan(Script) {
-                CompressPackget = true,
+                CompressPackage = true,
                 ForceMaxOffsetLength = ExtendStringLimit
             };
 
@@ -89,7 +89,7 @@ namespace KrKrSceneManager {
         public byte[] Export(string[] Strings) {
             string[] Content = Sort(Strings, Calls.ToArray());
 
-            StringManager.CompressPackget = CompressPackget;
+            StringManager.CompressPackage = CompressPackget;
             PSBStrMan.CompressionLevel = CompressionLevel;
 
             return StringManager.Export(Content);

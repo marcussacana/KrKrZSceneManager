@@ -121,24 +121,25 @@ namespace ScnEditorGUI {
             }
         }
 
-        private void tryRecoveryToolStripMenuItem_Click(object sender, EventArgs e) {
-            throw new NotImplementedException();
-            /*
+        void tryRecoveryToolStripMenuItem_Click(object sender, EventArgs e) {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Filter = "All PSB Files|*.psb;*.scn;*.pimg";
             DialogResult dr = ofd.ShowDialog();
             if (dr == DialogResult.OK) {
                 try {
                     byte[] data = System.IO.File.ReadAllBytes(ofd.FileName);
-                    data = PSBStrMan.TryRecovery(data);
+                    var PSBManager = new PSBStrMan(data);
+                    data = PSBManager.TryRecovery();
                     System.IO.File.WriteAllBytes(ofd.FileName, data);
-                    MessageBox.Show("Packget Offset's Updated", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Package Offset's Updated", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex) {
                     MessageBox.Show("Failed To Recovery:\n" + ex.Message, "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-            }*/
+            }
         }
+
+
 
         TJS2SManager TJSEditor;
         private void openToolStripMenuItem_Click(object sender, EventArgs e) {

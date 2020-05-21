@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
 using AdvancedBinary;
 
 /*
@@ -19,16 +20,16 @@ using AdvancedBinary;
 namespace KrKrSceneManager {
     public class PSBStrMan {  
         
-        public bool CompressPackget = false;
+        public bool CompressPackage = false;
         public static int CompressionLevel = 9;
         public bool ForceMaxOffsetLength = false;
 
-        private byte[] Script;
-        private int OffLength;
-        private int StrCount;
-        private int OldOffTblLen;//Old Offset Table Length
-        private int OldStrDatLen;//Old String Data Length
-        private PSBHeader Header;
+        byte[] Script;
+        int OffLength;
+        int StrCount;
+        int OldOffTblLen;//Old Offset Table Length
+        int OldStrDatLen;//Old String Data Length
+        PSBHeader Header;
         public PSBStrMan(byte[] Script) {
             this.Script = new byte[Script.Length];
             Script.CopyTo(this.Script, 0);
@@ -37,10 +38,10 @@ namespace KrKrSceneManager {
             PackgetStatus Status = GetPackgetStatus(Script);
             switch (Status) {
                 case PackgetStatus.Invalid:
-                    throw new Exception("Invalid Packget");
+                    throw new Exception("Invalid Package");
                 case PackgetStatus.MDF:
                     Script = ExtractMDF(Script);
-                    CompressPackget = true;
+                    CompressPackage = true;
                     break;
             }
 
@@ -93,7 +94,7 @@ namespace KrKrSceneManager {
 
             Header.ParseStruct().CopyTo(OutScript, 0);
 
-            return CompressPackget ? CompressMDF(OutScript) : OutScript;
+            return CompressPackage ? CompressMDF(OutScript) : OutScript;
         }
 
         private void OverwriteRange(ref byte[] OriginalData, uint Start, int Length, byte[] DataToOverwrite) {
@@ -109,7 +110,7 @@ namespace KrKrSceneManager {
             Second.CopyTo(OriginalData, First.Length + DataToOverwrite.Length);
         }
 
-        private void UpdateOffsets(ref PSBHeader Header, int OffTblDiff, int StrDatDiff) {
+        void UpdateOffsets(ref PSBHeader Header, int OffTblDiff, int StrDatDiff) {
             UpdateOffset(ref Header.ResOffPos, Header.StrOffPos, OffTblDiff);
             UpdateOffset(ref Header.ResDataPos, Header.StrOffPos, OffTblDiff);
             UpdateOffset(ref Header.ResLenPos, Header.StrOffPos, OffTblDiff);
@@ -122,13 +123,13 @@ namespace KrKrSceneManager {
             UpdateOffset(ref Header.ResIndexTree, Header.StrDataPos, StrDatDiff);
         }
 
-        private void UpdateOffset(ref uint Offset, uint ChangeBaseOffset, int Diff) {
+        void UpdateOffset(ref uint Offset, uint ChangeBaseOffset, int Diff) {
             if (Offset < ChangeBaseOffset)
                 return;
             Offset = (uint)(Offset + Diff);
         }
 
-        private void BuildStringData(string[] Strings, out byte[] StringTable, out int[] Offsets) {
+        void BuildStringData(string[] Strings, out byte[] StringTable, out int[] Offsets) {
             Offsets = new int[StrCount];
             MemoryStream Writer = new MemoryStream();
 
@@ -140,7 +141,7 @@ namespace KrKrSceneManager {
             Writer.Close();
         }
 
-        private void BuildOffsetTable(int[] Offsets, out byte[] OffsetData) {
+        void BuildOffsetTable(int[] Offsets, out byte[] OffsetData) {
             MemoryStream OffData = new MemoryStream();
             BinaryWriter Writer = new BinaryWriter(OffData);
 
@@ -161,16 +162,64 @@ namespace KrKrSceneManager {
             OffData?.Close();
         }
 
-        internal static byte[] CompressMDF(byte[] psb) {
+        internal static byte[] CompressMDF(byte[] Psb) {
             byte[] CompressedScript;
-            Tools.CompressData(psb, CompressionLevel, out CompressedScript);
+            Tools.CompressData(Psb, CompressionLevel, out CompressedScript);
 
             byte[] RetData = new byte[8 + CompressedScript.Length];
             (new byte[] { 0x6D, 0x64, 0x66, 0x00 }).CopyTo(RetData, 0);//Signature
-            CreateOffset(4, psb.Length).CopyTo(RetData, 4);//Decompressed Length
+            CreateOffset(4, Psb.Length).CopyTo(RetData, 4);//Decompressed Length
             CompressedScript.CopyTo(RetData, 8);//ZLIB Data
 
             return RetData;
+        }
+
+        public byte[] TryRecovery()
+        {
+            var Script = new byte[this.Script.Length];
+            this.Script.CopyTo(Script, 0);
+
+            var Status = GetPackgetStatus(Script);
+            if (Status == PackgetStatus.Invalid)
+                throw new Exception("Invalid Package");
+
+            bool MDF = Status == PackgetStatus.MDF;
+            if (MDF)
+                Script = ExtractMDF(Script);
+
+            int StrOff = ReadOffset(Script, 0x10, 4);
+            int StrData = ReadOffset(Script, 0x14, 4);
+            int CntSize = ConvertSize(Script[StrOff]);
+            int Count = ReadOffset(Script, StrOff + 1, CntSize);
+            int Size = ConvertSize(Script[StrOff + 1 + CntSize]);
+            int EndStr = (StrOff + 2 + CntSize) + ((Count - 1) * Size);
+            EndStr = ReadOffset(Script, EndStr, Size) + StrData;
+            while (Script[EndStr] != 0x00)
+                EndStr++;
+            byte[] Seq = new byte[] { 0xD, 0x0, 0xD };
+            if (EqualsAt(Script, Seq, EndStr + 1) && EqualsAt(Script, Seq, EndStr + 1 + Seq.Length)) {
+                OverwriteRange(ref Script, 0x18, 4, CreateOffset(4, EndStr + 1));
+                OverwriteRange(ref Script, 0x1C, 4, CreateOffset(4, EndStr + 4));//+3
+                OverwriteRange(ref Script,  0x20, 4, CreateOffset(4, EndStr + 7));//+6
+                return MDF ? CompressMDF(Script) : Script;
+            } else {
+                try {
+                    int tmp = ConvertSize(Script[ReadOffset(Script, 0x18, 4)]);
+                    tmp = ConvertSize(Script[ReadOffset(Script, 0x1C, 4)]);
+                    return MDF ? CompressMDF(Script) : Script; //Looks all Rigth
+                }
+                catch {
+                    throw new Exception("You Can't Recovery because this package contains data.");
+                }
+            }
+        }
+        bool EqualsAt(byte[] Data, byte[] CompareData, int Pos) {
+            if (CompareData.Length + Pos > Data.Length)
+                return false;
+            for (int i = 0; i < CompareData.Length; i++)
+                if (Data[i + Pos] != CompareData[i])
+                    return false;
+            return true;
         }
 
         private static int GetMinIntLen(int Value) {
