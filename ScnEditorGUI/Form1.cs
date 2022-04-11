@@ -1,12 +1,69 @@
 ﻿using System;
+using System.Configuration;
+using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using KrKrSceneManager;
 
 namespace ScnEditorGUI {
     public partial class Form1 : Form {
+        /**
+         * https://stackoverflow.com/questions/57124243/winforms-dark-title-bar-on-windows-10#62811758
+         */
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private static bool UseImmersiveDarkMode(IntPtr handle, bool enabled) {
+            if (Environment.OSVersion.Version.Build >= 9200) {
+                var attribute = 20; // DWMWA_USE_IMMERSIVE_DARK_MODE
+
+                int useImmersiveDarkMode = enabled ? 1 : 0;
+                return DwmSetWindowAttribute(handle, (int)attribute, ref useImmersiveDarkMode, sizeof(int)) == 0;
+            }
+
+            return false;
+        }
+
         public Form1() {
             InitializeComponent();
             MessageBox.Show("This GUI don't is a stable translation tool, this program is a Demo for my dll, the \"KrKrSceneManager.dll\" it's a opensoruce project to allow you make your program to edit any scn file (with sig PSB or MDF) or TJS2 Files (with sig TJS2100)\n\nHow to use:\n*Rigth Click in the window to open or save the file\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
+
+            string maximized = ConfigurationSettings.AppSettings["maximized"];
+            string fontSize = ConfigurationSettings.AppSettings["font_size"];
+            string darkMode = ConfigurationSettings.AppSettings["dark_mode"];
+            string textboxSelectAllWhenClick = ConfigurationSettings.AppSettings["textbox_select_all_when_click"];
+            string textboxEditItemWhenCtrlV = ConfigurationSettings.AppSettings["textbox_edit_item_when_ctrl_v"];
+
+            if (maximized == "true") {
+                this.WindowState = FormWindowState.Maximized;
+            }
+
+            Font font = new Font(
+                "Microsoft Sans Serif",
+                float.Parse(fontSize),
+                FontStyle.Regular,
+                GraphicsUnit.Point,
+                ((byte)(0))
+            );
+            this.listBox1.Font = font;
+            this.textBox1.Font = font;
+
+            if(darkMode == "true") {
+                UseImmersiveDarkMode(this.Handle, true);
+                this.BackColor = Color.Black;
+                this.listBox1.BackColor = Color.Black;
+                this.listBox1.ForeColor = Color.White;
+                this.textBox1.BackColor = Color.Black;
+                this.textBox1.ForeColor = Color.White;
+            }
+
+            if (textboxSelectAllWhenClick == "true") {
+                this.textBox1.MouseClick += new MouseEventHandler(this.textBox1_MouseClick);
+            }
+
+            if (textboxEditItemWhenCtrlV == "true") {
+                this.textBox1.KeyUp += new KeyEventHandler(this.textBox1_KeyUp);
+            }
         }
 
         private void openFileToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -43,13 +100,58 @@ namespace ScnEditorGUI {
                 }
             }
         }
+
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e) {
-            try {
-                this.Text = "id: " + listBox1.SelectedIndex;
+            this.Text = "id: " + listBox1.SelectedIndex;
+
+            if (listBox1.SelectedIndex != -1) {
                 textBox1.Text = listBox1.Items[listBox1.SelectedIndex].ToString();
             }
-            catch { }
         }
+
+        private void listBox1_MouseClick(object sender, MouseEventArgs e) {
+            this.Text = "id: " + listBox1.SelectedIndex;
+
+            if (listBox1.SelectedIndex != -1) {
+                textBox1.Text = listBox1.Items[listBox1.SelectedIndex].ToString();
+            }
+        }
+
+        private void listBox1_KeyDown(object sender, KeyEventArgs e) {
+            if ((e.Modifiers == Keys.Control) && (e.KeyCode == Keys.F)) {
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        private void listBox1_KeyUp(object sender, KeyEventArgs e) {
+            if ((e.Modifiers == Keys.Control) && (e.KeyCode == Keys.F)) {
+                Find modalFind = new Find(this);
+                modalFind.ShowDialog(this);
+            }
+        }
+
+        public void FindMyString(string searchString) {
+            bool findOk = false;
+
+            // Ensure we have a proper string to search for.
+            if (!string.IsNullOrEmpty(searchString)) {
+                // Find the item in the list and store the index to the item.
+                for (int index = 0; index < listBox1.Items.Count; index++) {
+                    if (listBox1.Items[index].ToString().IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0) {
+                        this.Text = "id: " + index;
+                        listBox1.SetSelected(index, true);
+                        textBox1.Text = listBox1.Items[index].ToString();
+                        findOk = true;
+                        break;
+                    }
+                }
+            }
+
+            if(!findOk) {
+                MessageBox.Show("The search string did not match any items in the list");
+            }
+        }
+
         private void saveFileToolStripMenuItem_Click(object sender, EventArgs e) {
             if (ResourceMode) {
                 SaveFileDialog save = new SaveFileDialog();
@@ -89,6 +191,16 @@ namespace ScnEditorGUI {
         private void textBox1_KeyPress(object sender, KeyPressEventArgs e) {
             if (e.KeyChar == '\r' || e.KeyChar == '\n') {
                 listBox1.Items[listBox1.SelectedIndex] = textBox1.Text;
+            }
+        }
+
+        private void textBox1_MouseClick(object sender, MouseEventArgs e) {
+            this.textBox1.SelectAll();
+        }
+
+        private void textBox1_KeyUp(object sender, KeyEventArgs e) {
+            if ((e.Modifiers == Keys.Control) && (e.KeyCode == Keys.V)) {
+                this.listBox1.Items[listBox1.SelectedIndex] = textBox1.Text;
             }
         }
 

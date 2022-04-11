@@ -8,6 +8,16 @@
 A DLL Library tool to allow you write your own string editor or resouce manager in C#
 Tested with: Nekopara Vol.0 & Vol.1, Dracu+Riot, Wagamama [Steam ver] (.scn, .pimg and .psb), TJS2100
 
+### Added new experimental features
+🆕 Added maximized window  
+🆕 Added font size config 🎉  
+🆕 Added dark mode config 🎉  
+🆕 Added config to select all in textbox when click  
+🆕 Added config to update text when CTRL + V  
+🆕 Added a simple find box when CTRL + F 🎉  
+
+Enable and disable this features in file `ScnEditorGUI.exe.config`
+
 ### Any problem with my shit?
 Try use this: https://github.com/UlyssesWu/FreeMote/tree/master/FreeMote.Tools.PsbDecompile
 
