@@ -167,7 +167,7 @@ namespace AdvancedBinary {
                 case Const.FLOAT:
                     return BitConverter.ToSingle(Arr, 0);
                 default:
-                    throw new Exception("Unk Data Type.");
+                    throw new Exception("Unknown Data Type.");
             }
         }
 
@@ -219,7 +219,7 @@ namespace AdvancedBinary {
                             break;
                         if (HasAttribute(field, Const.IGNORE))
                             break;
-                        throw new Exception("Unk Struct Field: " + field.FieldType.ToString());
+                        throw new Exception("Unknown Struct Field: " + field.FieldType.ToString());
                 }
             }
             return Length;
@@ -667,7 +667,7 @@ namespace AdvancedBinary {
                             Instance = Invoker.Invoke(BaseStream, true, Instance);
                             break;
                         }
-                        throw new Exception("Unk Struct Field: " + field.FieldType.ToString());
+                        throw new Exception("Unknown Struct Field: " + field.FieldType.ToString());
                     }
                     break;
             }
@@ -760,7 +760,7 @@ namespace AdvancedBinary {
                     } else
                         return ReadString();
                 default:
-                    throw new Exception("Unk Value Type");
+                    throw new Exception("Unknown Value Type");
             }
         }
 

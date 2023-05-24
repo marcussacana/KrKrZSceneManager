@@ -26,7 +26,7 @@ namespace ScnEditorGUI {
 
         public Form1() {
             InitializeComponent();
-            MessageBox.Show("This GUI don't is a stable translation tool, this program is a Demo for my dll, the \"KrKrSceneManager.dll\" it's a opensoruce project to allow you make your program to edit any scn file (with sig PSB or MDF) or TJS2 Files (with sig TJS2100)\n\nHow to use:\n*Rigth Click in the window to open or save the file\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
+            MessageBox.Show("This GUI isn't a stable translation tool, this program is a demo for my DLL, \"KrKrSceneManager.dll.\" It's an open-source project to allow you to make your program for editing any .scn files (with sig PSB or MDF) or TJS2 files (with sig TJS2100)\n\nHow to use:\n*Right-click in the window to open or save a file.\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
 
             string maximized = ConfigurationSettings.AppSettings["maximized"];
             string fontSize = ConfigurationSettings.AppSettings["font_size"];
@@ -93,10 +93,10 @@ namespace ScnEditorGUI {
                     listBox1.Items.Add(str);
                 }
                 if (SCN.UnkOpCodes) {
-                    MessageBox.Show("Maybe the reoder is wrong... try create a issue");
+                    MessageBox.Show("Maybe the reorder is wrong... try creating an issue");
                 }
                 if (SCN.HaveEmbedded) {
-                    MessageBox.Show("Looks this psb contains a Embedded File, try open as .pimg");
+                    MessageBox.Show("Looks this psb contains an Embedded File, try opening it as .pimg");
                 }
             }
         }
@@ -178,7 +178,7 @@ namespace ScnEditorGUI {
                     for (int i = 0; i < Strings.Length; i++) {
                         Strings[i] = listBox1.Items[i].ToString();
                     }
-                    dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nDoes not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    dr = MessageBox.Show("Would you like to compress the script? (Recommended)\n\nThis does not work with old games.", "ScnEditorGUI", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     SCN.CompressPackage = dr == DialogResult.Yes;
                     PSBStrMan.CompressionLevel = CompressionLevel.Z_BEST_COMPRESSION; //opitional
                     byte[] outfile = SCN.Export(Strings);
@@ -186,7 +186,7 @@ namespace ScnEditorGUI {
 
                 }
             }
-            MessageBox.Show("File Saved.");
+            MessageBox.Show("File saved.");
         }
         private void textBox1_KeyPress(object sender, KeyPressEventArgs e) {
             if (e.KeyChar == '\r' || e.KeyChar == '\n') {
@@ -214,7 +214,7 @@ namespace ScnEditorGUI {
                 byte[] output = HuffmanTool.DecompressBitmap(input);
                 string fname = System.IO.Path.GetFileNameWithoutExtension(fd.FileName);
                 System.IO.File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + fname + "_decompressed.raw", output);
-                MessageBox.Show("This Resouce is Writed to Dracu-Riot, you need discovery resolution and add a bmp header manually and the unknown resolution.\n\n(Probabbly use RGBQuad)", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("The resource is written as Dracu-Riot, you need to find the resolution and manually add a BMP header and the unknown resolution.\n\n(Try using RGBQuad)", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -228,7 +228,7 @@ namespace ScnEditorGUI {
                 byte[] output = HuffmanTool.CompressBitmap(input, true);
                 string fname = System.IO.Path.GetFileNameWithoutExtension(fd.FileName);
                 System.IO.File.WriteAllBytes(AppDomain.CurrentDomain.BaseDirectory + fname + "_compressed.res", output);
-                MessageBox.Show("Compressed to Tool Dir.", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Compressed to Tool directory.", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             }
         }
@@ -243,10 +243,10 @@ namespace ScnEditorGUI {
                     var PSBManager = new PSBStrMan(data);
                     data = PSBManager.TryRecovery();
                     System.IO.File.WriteAllBytes(ofd.FileName, data);
-                    MessageBox.Show("Package Offset's Updated", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Package offsets were updated", "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex) {
-                    MessageBox.Show("Failed To Recovery:\n" + ex.Message, "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Failed to recover:\n" + ex.Message, "ScnEditorGUI", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }
@@ -279,7 +279,7 @@ namespace ScnEditorGUI {
                 for (int i = 0; i < NewString.Length; i++)
                     NewString[i] = listBox1.Items[i].ToString();
                 System.IO.File.WriteAllBytes(fd.FileName, TJSEditor.Export(NewString));
-                MessageBox.Show("File Saved.");
+                MessageBox.Show("File saved.");
             }
         }
 

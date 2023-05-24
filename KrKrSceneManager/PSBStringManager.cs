@@ -209,7 +209,7 @@ namespace KrKrSceneManager {
                     return MDF ? CompressMDF(Script) : Script; //Looks all Rigth
                 }
                 catch {
-                    throw new Exception("You Can't Recovery because this package contains data.");
+                    throw new Exception("You can't attempt recovery because this package contains data.");
                 }
             }
         }
