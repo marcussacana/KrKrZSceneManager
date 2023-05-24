@@ -26,7 +26,7 @@ namespace ScnEditorGUI {
 
         public Form1() {
             InitializeComponent();
-            MessageBox.Show("This GUI don't is a stable translation tool, this program is a Demo for my dll, the \"KrKrSceneManager.dll\" it's a opensoruce project to allow you make your program to edit any scn file (with sig PSB or MDF) or TJS2 Files (with sig TJS2100)\n\nHow to use:\n*Rigth Click in the window to open or save the file\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
+            MessageBox.Show("This GUI isn't a stable translation tool, this program is a demo for my DLL, \"KrKrSceneManager.dll.\" It's an open-soruce project to allow you to make your program for editing any .scn files (with sig PSB or MDF) or TJS2 files (with sig TJS2100)\n\nHow to use:\n*Right-click in the window to open or save a file.\n*Select the string in listbox and edit in the text box\n*Press enter to update the string\n\nThis program is unstable!");
 
             string maximized = ConfigurationSettings.AppSettings["maximized"];
             string fontSize = ConfigurationSettings.AppSettings["font_size"];
