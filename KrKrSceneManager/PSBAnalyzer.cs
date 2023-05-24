@@ -109,7 +109,7 @@ namespace KrKrSceneManager {
 
         private string[] Sort(string[] Strings, uint[] Map) {
             if (Map.Length != Strings.Length)
-                throw new Exception("String Calls Count Missmatch");
+                throw new Exception("String Calls Count Mismatch");
 
 
             string[] Result = new string[Strings.LongLength];

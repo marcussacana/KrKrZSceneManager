@@ -78,9 +78,9 @@ namespace KrKrSceneManager {
         }
         public byte[] Export(FileEntry[] Resources) {
             if (!Initialized)
-                throw new Exception("You Need Import Before Export");
+                throw new Exception("You need to import before you can export!");
             if (Resources.Length != EntryCount)
-                throw new Exception("You Can't Add or Delete Resources.");
+                throw new Exception("You can't add or delete resources!");
             int TotalSize = 0;
             for (int i = 0; i < Resources.Length; i++)
                 TotalSize += Resources[i].Data.Length + (FixOffsets && i + 1 != Resources.Length ? 4 - ((StartPos + TotalSize + Resources[i].Data.Length) % 4) : 0);
